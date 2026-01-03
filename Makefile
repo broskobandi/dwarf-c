@@ -40,7 +40,7 @@ distclean:
 install: $(BIN)
 	cp $(BIN) $(INSTALL_DIR)
 
-$(BIN): $(MAIN) $(OBJ) | $(BUILD_DIR)
+$(BIN): $(MAIN) $(OBJ) | $(BIN_DIR)
 	$(CC) $(CFLAGS) $(CPPFALGS) $^ -o $@ $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/%.h | $(OBJ_DIR)
