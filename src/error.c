@@ -1,6 +1,7 @@
 #include "error.h"
 #include <SDL2/SDL_error.h>
 #include <string.h>
+#include <stdio.h>
 
 #define ERR_BUFF_SIZE 512LU
 

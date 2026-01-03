@@ -12,7 +12,7 @@ SDL_INC_DIR=build/win/deps/SDL2-2.32.8/x86_64-w64-mingw32/include
 
 make CC=x86_64-w64-mingw32-gcc \
 	CFLAGS="-Wall -Wextra -Wconversion -Wunused-result -O3 -march=native -flto" \
-	CPPFALGS="-Isrc -I$VEC_INC_DIR -I$SDL_INC_DIR" \
+	CPPFALGS="-Isrc -I$VEC_INC_DIR -I$SDL_INC_DIR -DNDEBUG" \
 	LDFLAGS="-L$VEC_LIB_DIR -lvec -L$SDL_LIB_DIR -lSDL2" \
 	BUILD_DIR=build/win/release \
 	BIN="\$(BUILD_DIR)/\$(PROJECT).exe"

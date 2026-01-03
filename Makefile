@@ -32,7 +32,7 @@ run: $(BIN)
 	@./$(BIN)
 
 clean:
-	rm -rf build/linux build/win
+	rm -rf build/linux/debug build/linux/release build/win/debug build/win/release $(COMPILE_COMMANDS)
 
 distclean:
 	rm -rf build
