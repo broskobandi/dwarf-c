@@ -19,7 +19,7 @@ sudo ./install-release.sh
 
 ```
 ## Todo
-- [ ] Create SDL base
+- [x] Create SDL base
 - [ ] Create tile system
 - [ ] Solve tile system shadows
 - [ ] Create dwarf character

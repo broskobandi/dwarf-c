@@ -32,7 +32,7 @@ run: $(BIN)
 	@./$(BIN)
 
 clean:
-	rm -rf $(COMPILE_COMMANDS) $(BIN) $(OBJ)
+	rm -rf build/linux build/win
 
 distclean:
 	rm -rf build
@@ -41,16 +41,20 @@ install: $(BIN)
 	cp $(BIN) $(INSTALL_DIR)
 
 $(BIN): $(MAIN) $(OBJ) | $(BIN_DIR)
-	$(CC) $(CFLAGS) $(CPPFALGS) $^ -o $@ $(LDFLAGS)
+	@echo Building $@...
+	@$(CC) $(CFLAGS) $(CPPFALGS) $^ -o $@ $(LDFLAGS)
+	@echo Done. $@..."\n"
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/%.h | $(OBJ_DIR)
-	$(CC) -c -fPIC $(CFLAGS) $(CPPFALGS) $< -o $@
+	@echo Building $@...
+	@$(CC) -c -fPIC $(CFLAGS) $(CPPFALGS) $< -o $@
+	@echo Done. $@..."\n"
 
 $(BUILD_DIR):
-	mkdir -p $@
+	@mkdir -p $@
 
 $(BIN_DIR):
-	mkdir -p $@
+	@mkdir -p $@
 
 $(OBJ_DIR):
-	mkdir -p $@
+	@mkdir -p $@
