@@ -40,7 +40,7 @@ static inline int game_init(game_t *game) {
 
 	ASSERT(!sdl_init(&game->sdl, "Dwarf", WIN_W, WIN_H));
 
-	tiles_init_data_t tiles_init_data = {
+	const tiles_init_data_t tiles_init_data = {
 		.dstrect_size = 128,
 		.srcrect_size = 32,
 		.hitbox_size = 64,
