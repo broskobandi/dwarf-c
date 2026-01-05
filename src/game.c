@@ -53,7 +53,7 @@ static inline int game_init(game_t *game) {
 	ASSERT(!tiles_init(
 		&game->tiles,
 		game->sdl.ren,
-		"../assets/ground4.bmp",
+		"assets/ground4.bmp",
 		tiles_init_data)
 	);
 

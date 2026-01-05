@@ -234,11 +234,11 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 
 		// Set activity
 		
-		if (tile->is_highlighted &&
-			is_left_click
-		) {
-			tile->is_active = false;
-		}
+		// if (tile->is_highlighted &&
+		// 	is_left_click
+		// ) {
+		// 	tile->is_active = false;
+		// }
 	}
 
 	return 0;
@@ -253,20 +253,20 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 	const int num_tiles = tiles->num_tiles;
 	const int srcrect_size = tiles->init_data.srcrect_size;
 
-	static unsigned char old_alpha = 255;
-	static unsigned char new_alpha = 255;
+	// static unsigned char old_alpha = 255;
+	// static unsigned char new_alpha = 255;
 	for (int i = 0; i < num_tiles; i++) {
 		const tile_t *tile = &tiles->tiles[i];
 		if (!tile->is_visible) continue;
 
-		new_alpha = tile->is_highlighted ? 128 : 255;
-		if (new_alpha != old_alpha) {
-			if (SDL_SetTextureAlphaMod(tiles->tex, new_alpha)) {
-				SET_ERR("Failed to set texture alpha mod.");
-				return 1;
-			}
-		}
-		old_alpha = new_alpha;
+		// new_alpha = tile->is_highlighted ? 128 : 255;
+		// if (new_alpha != old_alpha) {
+		// 	if (SDL_SetTextureAlphaMod(tiles->tex, new_alpha)) {
+		// 		SET_ERR("Failed to set texture alpha mod.");
+		// 		return 1;
+		// 	}
+		// }
+		// old_alpha = new_alpha;
 
 		if (SDL_RenderCopy(ren, tiles->tex, &tile->srcrect, &tile->dstrect)) {
 			SET_ERR("Failed to copy base texture.");
@@ -274,6 +274,7 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 		}
 
 		SDL_Rect srcrect = tile->srcrect;
+
 		if (tile->is_blocked_from_above_right_up) {
 			srcrect.x = srcrect_size * 5;
 			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
@@ -318,8 +319,14 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 			}
 		}
 
+		if (tile->is_highlighted) {
+			srcrect.x = srcrect_size * 6;
+			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
+				SET_ERR("Failed to copy shadow texture.");
+				return 1;
+			}
+		}
 	}
 
 	return 0;
 }
-

@@ -12,7 +12,6 @@ LDFLAGS = -lSDL2
 BUILD_DIR := build/$(OS)/$(BUILD_TYPE)
 SRC_DIR := src
 OBJ_DIR := $(BUILD_DIR)/obj
-BIN_DIR := $(BUILD_DIR)/bin
 
 # Files
 MAIN := $(SRC_DIR)/main.c
@@ -20,7 +19,7 @@ SRC := $(filter-out $(MAIN), $(wildcard $(SRC_DIR)/*.c))
 INC := $(wildcard $(SRC_DIR)/*.h)
 
 # Targets
-BIN := $(BIN_DIR)/$(PROJECT)
+BIN := $(BUILD_DIR)/$(PROJECT)
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
 .PHONY: all run clean distclean
@@ -36,13 +35,14 @@ clean:
 distclean:
 	rm -rf build
 
-$(BIN): $(MAIN) $(OBJ) | $(BIN_DIR)
+$(BIN): $(MAIN) $(OBJ) | $(BUILD_DIR)
 	$(CC) $(CFLAGS) $(CPPFLAGS) $^ -o $@ $(LDFLAGS)
+	cp -r assets $(BUILD_DIR)/
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h | $(OBJ_DIR)
 	$(CC) -c -fPIC $(CFLAGS) $(CPPFLAGS) $< -o $@
 
-$(BIN_DIR):
+$(BUILD_DIR):
 	mkdir -p $@
 
 $(OBJ_DIR):
