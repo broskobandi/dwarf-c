@@ -1,12 +1,14 @@
 # Project
-OS ?= linux
-BUILD_TYPE ?= debug
+OS = linux
+BUILD_TYPE = debug
 COMPILE_COMMANDS := build/compile_commands.json
 PROJECT := dwarf
-CC ?= bear --output $(COMPILE_COMMANDS) -- clang
-CFLAGS ?= -Wall -Wextra -Wunused-result -Wconversion
-CPPFLAGS ?= -Isrc
-LDFLAGS ?= -lSDL2
+CC = bear --output $(COMPILE_COMMANDS) -- clang
+# CC ?= bear -- clang
+# CC ?= clang
+CFLAGS = -Wall -Wextra -Wunused-result -Wconversion
+CPPFLAGS = -Isrc
+LDFLAGS = -lSDL2
 
 # Dirs
 BUILD_DIR := build/$(OS)/$(BUILD_TYPE)
