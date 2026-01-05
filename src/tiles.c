@@ -51,20 +51,20 @@ int tiles_init(tiles_t *tiles, SDL_Renderer *ren, const char *path_to_bmp, tiles
 					tiles_del(tiles);
 					return 1;
 				}
-				SDL_Rect dstrect = {
+				const SDL_Rect dstrect = {
 					x * dstrect_size + x_offset,
 					y * y_offset - z * z_offset,
 					dstrect_size,
 					dstrect_size
 				};
-				SDL_Rect srcrect = {0, 0, srcrect_size, srcrect_size};
-				SDL_Rect hitbox = {
+				const SDL_Rect srcrect = {0, 0, srcrect_size, srcrect_size};
+				const SDL_Rect hitbox = {
 					dstrect.x + (dstrect_size - hitbox_size) / 2,
 					dstrect.y,
 					hitbox_size,
 					hitbox_size
 				};
-				bool is_staggered = x_offset ? true : false;
+				const bool is_staggered = x_offset ? true : false;
 				tile_t tile = {0};
 				tile.dstrect = dstrect;
 				tile.srcrect = srcrect;
@@ -102,6 +102,7 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 	const int num_cols = tiles_object->init_data.num_cols;
 	const int num_rows = tiles_object->init_data.num_rows;
 	const int y_offset = tiles_object->init_data.y_offset;
+	const int z_offset = tiles_object->init_data.z_offset;
 	const tile_t *tiles = tiles_object->tiles;
 
 	for (int i = 0; i < num_tiles; i++) {
@@ -109,18 +110,18 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 
 		// Set indicies
 		
-		int right = i + 1;
-		int left = i - 1;
-		int above = i + num_tiles_per_layer;
-		int above_right_up = i + num_tiles_per_layer - num_cols +
+		const int right = i + 1;
+		const int left = i - 1;
+		const int above = i + num_tiles_per_layer;
+		const int above_right_up = i + num_tiles_per_layer - num_cols +
 			(tile->is_staggered ? 1 : 0);
-		int right_up = i - num_cols +
+		const int right_up = i - num_cols +
 			(tile->is_staggered ? 1 : 0);
-		int left_up = i - num_cols -
+		const int left_up = i - num_cols -
 			(tile->is_staggered ? 0 : 1);
-		int right_down = i + num_cols +
+		const int right_down = i + num_cols +
 			(tile->is_staggered ? 1 : 0);
-		int left_down = i + num_cols -
+		const int left_down = i + num_cols -
 			(tile->is_staggered ? 0 : 1);
 
 		// Set covered flags
@@ -152,31 +153,38 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 			tile->is_covered_from_right_down = false;
 		}
 
+		if (above_right_up < num_tiles &&
+			tiles[above_right_up].is_visible &&
+			tiles[above_right_up].dstrect.y == tile->dstrect.y - y_offset - z_offset
+		) {
+			tile->is_covered_from_above_right_up = true;
+		} else {
+			tile->is_covered_from_above_right_up = false;
+		}
+
 		// Set visibility
 
-		if (tile->is_covered_from_above &&
-			tile->is_covered_from_left_down &&
-			tile->is_covered_from_right_down
+		if (!tile->is_covered_from_above ||
+			!tile->is_covered_from_left_down ||
+			!tile->is_covered_from_right_down
 		) {
-			tile->is_visible = false;
-		} else {
 			tile->is_visible = true;
-		}
-
-		// Test indicies
-
-		// Highlighting
-
-		if (!tile->is_covered_from_above &&
-			mouse.x >= tile->dstrect.x &&
-			mouse.x <= tile->dstrect.x + dstrect_size &&
-			mouse.y >= tile->dstrect.y &&
-			mouse.y <= tile->dstrect.y + dstrect_size
-		) {
-			tile->is_highlighted = true;
 		} else {
-			tile->is_highlighted = false;
+			tile->is_visible = false;
 		}
+
+		// // Highlighting
+		//
+		// if (!tile->is_covered_from_above &&
+		// 	mouse.x >= tile->dstrect.x &&
+		// 	mouse.x <= tile->dstrect.x + dstrect_size &&
+		// 	mouse.y >= tile->dstrect.y &&
+		// 	mouse.y <= tile->dstrect.y + dstrect_size
+		// ) {
+		// 	tile->is_highlighted = true;
+		// } else {
+		// 	tile->is_highlighted = false;
+		// }
 	}
 
 	return 0;
@@ -196,8 +204,8 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 		const tile_t *tile = &tiles->tiles[i];
 		if (!tile->is_visible) continue;
 
-		unsigned char alpha = tile->is_highlighted ? 128 : 255;
-		SDL_SetTextureAlphaMod(tiles->tex, alpha);
+		// unsigned char alpha = tile->is_highlighted ? 128 : 255;
+		// SDL_SetTextureAlphaMod(tiles->tex, alpha);
 
 		// new_alpha = tile->is_highlighted ? 128 : 255;
 		// if (new_alpha != old_alpha) {

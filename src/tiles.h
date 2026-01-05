@@ -16,6 +16,7 @@ typedef struct tile {
 	bool is_covered_from_above;
 	bool is_covered_from_left_down;
 	bool is_covered_from_right_down;
+	bool is_covered_from_above_right_up;
 	bool is_visible;
 } tile_t;
 
