@@ -70,6 +70,7 @@ int tiles_init(tiles_t *tiles, SDL_Renderer *ren, const char *path_to_bmp, tiles
 				tile.srcrect = srcrect;
 				tile.hitbox = hitbox;
 				tile.is_staggered = is_staggered;
+				tile.is_active = true;
 				tiles->tiles[tiles->num_tiles] = tile;
 				tiles->num_tiles++;
 			}
@@ -223,7 +224,7 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 
 		num_tiles_rendered++;
 	}
-	// printf("%d\n", num_tiles_rendered);
+	printf("%d\n", num_tiles_rendered);
 	// for (int i = 0; i < num_tiles; i++) {
 	// 	const tile_t *tile = &tiles->tiles[i];
 	// 	if (SDL_SetRenderDrawColor(ren, 255, 0, 0, 128)) {

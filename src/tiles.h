@@ -13,11 +13,12 @@ typedef struct tile {
 	SDL_Rect hitbox;
 	bool is_staggered;
 	bool is_highlighted;
-	bool is_covered_from_above;
-	bool is_covered_from_left_down;
-	bool is_covered_from_right_down;
-	bool is_covered_from_above_right_up;
+	bool is_blocked_from_above;
+	bool is_blocked_from_left_down;
+	bool is_blocked_from_right_down;
+	bool is_blocked_from_above_right_up;
 	bool is_visible;
+	bool is_active;
 } tile_t;
 
 typedef struct tiles_init_data {
