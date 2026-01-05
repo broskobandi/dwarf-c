@@ -1,60 +1,49 @@
 # Project
+OS ?= linux
+BUILD_TYPE ?= debug
 COMPILE_COMMANDS := build/compile_commands.json
 PROJECT := dwarf
 CC ?= bear --output $(COMPILE_COMMANDS) -- clang
 CFLAGS ?= -Wall -Wextra -Wunused-result -Wconversion
-CPPFALGS ?= -Isrc
-LDFLAGS ?= -lSDL2 -lvec 
+CPPFLAGS ?= -Isrc
+LDFLAGS ?= -lSDL2
 
 # Dirs
-BUILD_DIR ?= build/linux/debug
-OBJ_DIR := $(BUILD_DIR)/obj
+BUILD_DIR := build/$(OS)/$(BUILD_TYPE)
 SRC_DIR := src
+OBJ_DIR := $(BUILD_DIR)/obj
 BIN_DIR := $(BUILD_DIR)/bin
-INSTALL_DIR := /usr/local/bin
-INC_DIR := $(SRC_DIR)
 
 # Files
 MAIN := $(SRC_DIR)/main.c
 SRC := $(filter-out $(MAIN), $(wildcard $(SRC_DIR)/*.c))
-INC := $(wildcard $(INC_DIR)/*.h)
+INC := $(wildcard $(SRC_DIR)/*.h)
 
 # Targets
+BIN := $(BIN_DIR)/$(PROJECT)
 OBJ := $(SRC:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
-BIN ?= $(BIN_DIR)/$(PROJECT)
 
-# Rules
-.PHONY: all run clean distclean install
+.PHONY: all run clean distclean
 
 all: $(BIN)
 
 run: $(BIN)
-	@./$(BIN)
+	./$<
 
 clean:
-	rm -rf build/linux/debug build/linux/release build/win/debug build/win/release $(COMPILE_COMMANDS)
+	rm -rf build/linux build/win
 
 distclean:
 	rm -rf build
 
-install: $(BIN)
-	cp $(BIN) $(INSTALL_DIR)
-
 $(BIN): $(MAIN) $(OBJ) | $(BIN_DIR)
-	@echo Building $@...
-	@$(CC) $(CFLAGS) $(CPPFALGS) $^ -o $@ $(LDFLAGS)
-	@echo Done. $@..."\n"
+	$(CC) $(CFLAGS) $(CPPFLAGS) $^ -o $@ $(LDFLAGS)
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(INC_DIR)/%.h | $(OBJ_DIR)
-	@echo Building $@...
-	@$(CC) -c -fPIC $(CFLAGS) $(CPPFALGS) $< -o $@
-	@echo Done. $@..."\n"
-
-$(BUILD_DIR):
-	@mkdir -p $@
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(SRC_DIR)/%.h | $(OBJ_DIR)
+	$(CC) -c -fPIC $(CFLAGS) $(CPPFLAGS) $< -o $@
 
 $(BIN_DIR):
-	@mkdir -p $@
+	mkdir -p $@
 
 $(OBJ_DIR):
-	@mkdir -p $@
+	mkdir -p $@
