@@ -28,6 +28,7 @@ typedef struct dwarf {
 	SDL_Point target;
 	bool has_target;
 	bool is_moving;
+	bool is_facing_left;
 } dwarf_t;
 
 int dwarf_init(dwarf_t *dwarf, SDL_Renderer *ren, const char *path_to_bmp, dwarf_init_data_t init_data);

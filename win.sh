@@ -12,8 +12,6 @@ DEPS_DIR=build/deps
 BUILD_DIR="build/$OS/$BUILD_TYPE"
 SDL_DIR="$DEPS_DIR/SDL2-2.32.8/x86_64-w64-mingw32"
 LDFLAGS="-L $SDL_DIR/lib -lSDL2"
-# BIN_DIR="$BUILD_DIR/bin"
-# OUTPUT_DIR="$BUILD_DIR/output"
 if [[ "$1" == "release" ]]; then
 	CFLAGS="-Wall -Wextra -Wconversion -Wunused-result -O3 -march=native -flto"
 else

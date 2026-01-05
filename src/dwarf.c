@@ -3,6 +3,7 @@
 #include "error.h"
 #include <SDL2/SDL_render.h>
 #include <SDL2/SDL_surface.h>
+#include <stdlib.h>
 
 int dwarf_init(dwarf_t *dwarf, SDL_Renderer *ren, const char *path_to_bmp, dwarf_init_data_t id) {
 	if (!dwarf || !ren || !path_to_bmp) {
@@ -46,6 +47,7 @@ int dwarf_init(dwarf_t *dwarf, SDL_Renderer *ren, const char *path_to_bmp, dwarf
 	dwarf->cur_img = 0;
 	dwarf->has_target = false;
 	dwarf->is_moving = false;
+	dwarf->is_facing_left = false;
 
 	return 0;
 }
@@ -73,19 +75,54 @@ int dwarf_update(
 
 	const Uint32 ticks_per_anim_update = dwarf->init_data.ticks_per_anim_update;
 	const int num_imgs = dwarf->init_data.num_imgs;
-	const bool is_moving = dwarf->is_moving;
+	const int pixels_per_frame = dwarf->init_data.pixels_per_frame;
+	const int srcrect_size = dwarf->init_data.srcrect_size;
 
-	// if (is_left_click) {
-	// 	dwarf->target.x = mouse_pos
-	// }
+	if (is_left_click) {
+		dwarf->target = mouse_pos;
+		dwarf->has_target = true;
+	}
 
-	if (time - dwarf->time_of_last_anim_update >= ticks_per_anim_update && is_moving) {
+	if (dwarf->has_target) {
+		dwarf->is_moving = true;
+		if (dwarf->dstrect.x <= dwarf->target.x - pixels_per_frame) {
+			dwarf->dstrect.x += pixels_per_frame;
+			dwarf->is_facing_left = false;
+		}
+		if (dwarf->dstrect.x >= dwarf->target.x + pixels_per_frame) {
+			dwarf->dstrect.x -= pixels_per_frame;
+			dwarf->is_facing_left = true;
+		}
+		if (dwarf->dstrect.y <= dwarf->target.y - pixels_per_frame) {
+			dwarf->dstrect.y += pixels_per_frame;
+		}
+		if (dwarf->dstrect.y >= dwarf->target.y + pixels_per_frame) {
+			dwarf->dstrect.y -= pixels_per_frame;
+		}
+	} else {
+		dwarf->is_moving = false;
+	}
+
+	if (abs(dwarf->dstrect.x - dwarf->target.x) < pixels_per_frame &&
+		abs(dwarf->dstrect.y - dwarf->target.y) < pixels_per_frame
+	) {
+		dwarf->dstrect.x = dwarf->target.x;
+		dwarf->dstrect.y = dwarf->target.y;
+		dwarf->has_target = false;
+		dwarf->is_moving = false;
+		dwarf->srcrect.x = 0;
+	}
+
+	if (time - dwarf->time_of_last_anim_update >= ticks_per_anim_update &&
+		dwarf->is_moving
+	) {
 		dwarf->time_of_last_anim_update = time;
 		if (dwarf->cur_img + 1 < num_imgs) {
 			dwarf->cur_img++;
 		} else {
 			dwarf->cur_img = 0;
 		}
+		dwarf->srcrect.x = dwarf->cur_img * srcrect_size;
 	}
 
 	return 0;
@@ -94,6 +131,19 @@ int dwarf_update(
 int dwarf_draw(const dwarf_t *dwarf, SDL_Renderer *ren) {
 	if (!dwarf || !dwarf->tex || !ren) {
 		SET_ERR("Arguments cannot be NULL.");
+		return 1;
+	}
+
+	if (SDL_RenderCopyEx(
+		ren,
+		dwarf->tex,
+		&dwarf->srcrect,
+		&dwarf->dstrect,
+		0.0f,
+		NULL,
+		dwarf->is_facing_left ? SDL_FLIP_HORIZONTAL : SDL_FLIP_NONE
+	)) {
+		SET_ERR("Failed to copy dwarf texture.");
 		return 1;
 	}
 

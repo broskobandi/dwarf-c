@@ -2,10 +2,12 @@
 #include "sdl.h"
 #include "error.h"
 #include "tiles.h"
+#include "dwarf.h"
 #include <SDL2/SDL_events.h>
 #include <SDL2/SDL_keyboard.h>
 #include <SDL2/SDL_rect.h>
 #include <SDL2/SDL_render.h>
+#include <SDL2/SDL_timer.h>
 #include <stdio.h>
 #include <stdbool.h>
 
@@ -23,10 +25,12 @@
 typedef struct game {
 	sdl_t sdl;
 	tiles_t tiles;
+	dwarf_t dwarf;
 } game_t;
 
 static inline void game_del(game_t *game) {
 	if (game) {
+		dwarf_del(&game->dwarf);
 		tiles_del(&game->tiles);
 		sdl_del(&game->sdl);
 	}
@@ -57,6 +61,22 @@ static inline int game_init(game_t *game) {
 		tiles_init_data)
 	);
 
+	const dwarf_init_data_t dwarf_init_data = {
+		.dstrect_size = 64,
+		.srcrect_size = 16,
+		.hitbox_size = 64,
+		.num_imgs = 8,
+		.pixels_per_frame = 3,
+		.ticks_per_anim_update = 20,
+		.start_pos = {0, 0}
+	};
+	ASSERT(!dwarf_init(
+		&game->dwarf,
+		game->sdl.ren,
+		"assets/dwarf10.bmp",
+		dwarf_init_data)
+	);
+
 	return 0;
 }
 
@@ -77,6 +97,7 @@ int game_run() {
 	ASSERT(!SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND));
 
 	tiles_t *tiles = &game.tiles;
+	dwarf_t *dwarf = &game.dwarf;
 
 	bool is_running = true;
 
@@ -96,11 +117,13 @@ int game_run() {
 		SDL_GetMouseState(&mouse_pos.x, &mouse_pos.y);
 
 		ASSERT(!tiles_update(tiles, mouse_pos, left_click));
+		ASSERT(!dwarf_update(dwarf, tiles, SDL_GetTicks(), mouse_pos, left_click));
 
 		ASSERT(!SDL_SetRenderDrawColor(ren, 30, 70, 70, 255));
 		ASSERT(!SDL_RenderClear(ren));
 
 		ASSERT(!tiles_draw(tiles, ren));
+		ASSERT(!dwarf_draw(dwarf, ren));
 
 		SDL_RenderPresent(ren);
 	}
