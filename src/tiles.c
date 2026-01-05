@@ -5,11 +5,12 @@
 #include <SDL2/SDL_surface.h>
 
 int tiles_init(tiles_t *tiles, SDL_Renderer *ren, const char *path_to_bmp, tiles_init_data_t id) {
-	if (!tiles) {
-		SET_ERR("Tiles cannot be NULL.");
+	if (!tiles || !ren || !path_to_bmp) {
+		SET_ERR("Arguments cannot be NULL.");
 		return 1;
 	}
 
+	tiles->init_data = id;
 	const int num_layers = id.num_layers;
 	const int num_rows = id.num_rows;
 	const int num_cols = id.num_cols;
@@ -40,7 +41,6 @@ int tiles_init(tiles_t *tiles, SDL_Renderer *ren, const char *path_to_bmp, tiles
 
 	tiles->num_tiles_per_layer = num_cols * num_rows;
 	tiles->num_tiles = 0;
-
 
 	for (int z = 0; z < num_layers; z++) {
 		for (int y = 0; y < num_rows; y++) {
@@ -110,7 +110,7 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 		tile_t *tile = &tiles_object->tiles[i];
 
 		// Set indicies
-		
+
 		const int right = i + 1;
 		const int left = i - 1;
 		const int above = i + num_tiles_per_layer;
@@ -125,49 +125,54 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 		const int left_down = i + num_cols -
 			(tile->is_staggered ? 0 : 1);
 
-		// Set covered flags
+		// Set blocked flags
 
 		if (above < num_tiles &&
+			above >= 0 &&
 			tiles[above].is_visible &&
 			tiles[above].dstrect.x == tile->dstrect.x
 		) {
-			tile->is_covered_from_above = true;
+			tile->is_blocked_from_above = true;
 		} else {
-			tile->is_covered_from_above = false;
+			tile->is_blocked_from_above = false;
 		}
 
 		if (left_down < num_tiles &&
+			left_down >= 0 &&
 			tiles[left_down].is_visible &&
 			tiles[left_down].dstrect.y == tile->dstrect.y + y_offset
 		) {
-			tile->is_covered_from_left_down = true;
+			tile->is_blocked_from_left_down = true;
 		} else {
-			tile->is_covered_from_left_down = false;
+			tile->is_blocked_from_left_down = false;
 		}
 
 		if (right_down < num_tiles &&
+			right_down >= 0 &&
 			tiles[right_down].is_visible &&
 			tiles[right_down].dstrect.y == tile->dstrect.y + y_offset
 		) {
-			tile->is_covered_from_right_down = true;
+			tile->is_blocked_from_right_down = true;
 		} else {
-			tile->is_covered_from_right_down = false;
+			tile->is_blocked_from_right_down = false;
 		}
 
 		if (above_right_up < num_tiles &&
+			above_right_up >= 0 &&
 			tiles[above_right_up].is_visible &&
 			tiles[above_right_up].dstrect.y == tile->dstrect.y - y_offset - z_offset
 		) {
-			tile->is_covered_from_above_right_up = true;
+			tile->is_blocked_from_above_right_up = true;
 		} else {
-			tile->is_covered_from_above_right_up = false;
+			tile->is_blocked_from_above_right_up = false;
 		}
 
 		// Set visibility
 
-		if (!tile->is_covered_from_above ||
-			!tile->is_covered_from_left_down ||
-			!tile->is_covered_from_right_down
+		if ((!tile->is_blocked_from_above ||
+			!tile->is_blocked_from_left_down ||
+			!tile->is_blocked_from_right_down) &&
+			tile->is_active
 		) {
 			tile->is_visible = true;
 		} else {
@@ -176,16 +181,16 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 
 		// // Highlighting
 		//
-		// if (!tile->is_covered_from_above &&
-		// 	mouse.x >= tile->dstrect.x &&
-		// 	mouse.x <= tile->dstrect.x + dstrect_size &&
-		// 	mouse.y >= tile->dstrect.y &&
-		// 	mouse.y <= tile->dstrect.y + dstrect_size
-		// ) {
-		// 	tile->is_highlighted = true;
-		// } else {
-		// 	tile->is_highlighted = false;
-		// }
+		if (!tile->is_blocked_from_above &&
+			mouse.x >= tile->hitbox.x &&
+			mouse.x <= tile->hitbox.x + hitbox_size &&
+			mouse.y >= tile->hitbox.y &&
+			mouse.y <= tile->hitbox.y + hitbox_size
+		) {
+			tile->is_highlighted = true;
+		} else {
+			tile->is_highlighted = false;
+		}
 	}
 
 	return 0;
@@ -198,25 +203,22 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 	}
 	const int num_tiles = tiles->num_tiles;
 
-	// static unsigned char old_alpha = 255;
-	// static unsigned char new_alpha = 255;
+	static unsigned char old_alpha = 255;
+	static unsigned char new_alpha = 255;
 	int num_tiles_rendered = 0;
 	for (int i = 0; i < num_tiles; i++) {
 		const tile_t *tile = &tiles->tiles[i];
 		if (!tile->is_visible) continue;
 
-		// unsigned char alpha = tile->is_highlighted ? 128 : 255;
-		// SDL_SetTextureAlphaMod(tiles->tex, alpha);
+		new_alpha = tile->is_highlighted ? 128 : 255;
+		if (new_alpha != old_alpha) {
+			if (SDL_SetTextureAlphaMod(tiles->tex, new_alpha)) {
+				SET_ERR("Failed to set texture alpha mod.");
+				return 1;
+			}
+		}
+		old_alpha = new_alpha;
 
-		// new_alpha = tile->is_highlighted ? 128 : 255;
-		// if (new_alpha != old_alpha) {
-		// 	if (SDL_SetTextureAlphaMod(tiles->tex, new_alpha)) {
-		// 		SET_ERR("Failed to set texture alpha mod.");
-		// 		return 1;
-		// 	}
-		// }
-		// old_alpha = new_alpha;
-		
 		if (SDL_RenderCopy(ren, tiles->tex, &tile->srcrect, &tile->dstrect)) {
 			SET_ERR("Failed to copy texture.");
 			return 1;

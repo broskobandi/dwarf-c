@@ -78,7 +78,7 @@ int game_run() {
 
 	tiles_t *tiles = &game.tiles;
 
-	bool is_running = 1;
+	bool is_running = true;
 
 	while (is_running) {
 		bool left_click = false;
@@ -90,7 +90,7 @@ int game_run() {
 			}
 		}
 		if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_Q]) {
-			is_running = 0;
+			is_running = false;
 		}
 		SDL_Point mouse_pos = {0};
 		SDL_GetMouseState(&mouse_pos.x, &mouse_pos.y);
