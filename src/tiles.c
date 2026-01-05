@@ -179,8 +179,8 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 			tile->is_visible = false;
 		}
 
-		// // Highlighting
-		//
+		// Set highlighting
+		
 		if (!tile->is_blocked_from_above &&
 			mouse.x >= tile->hitbox.x &&
 			mouse.x <= tile->hitbox.x + hitbox_size &&
@@ -190,6 +190,14 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 			tile->is_highlighted = true;
 		} else {
 			tile->is_highlighted = false;
+		}
+
+		// Set activity
+		
+		if (tile->is_highlighted &&
+			is_left_click
+		) {
+			tile->is_active = false;
 		}
 	}
 
@@ -205,7 +213,6 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 
 	static unsigned char old_alpha = 255;
 	static unsigned char new_alpha = 255;
-	int num_tiles_rendered = 0;
 	for (int i = 0; i < num_tiles; i++) {
 		const tile_t *tile = &tiles->tiles[i];
 		if (!tile->is_visible) continue;
@@ -223,21 +230,7 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 			SET_ERR("Failed to copy texture.");
 			return 1;
 		}
-
-		num_tiles_rendered++;
 	}
-	printf("%d\n", num_tiles_rendered);
-	// for (int i = 0; i < num_tiles; i++) {
-	// 	const tile_t *tile = &tiles->tiles[i];
-	// 	if (SDL_SetRenderDrawColor(ren, 255, 0, 0, 128)) {
-	// 		SET_ERR("Failed to set draw color.");
-	// 		return 1;
-	// 	}
-	// 	if (SDL_RenderFillRect(ren, &tile->hitbox)) {
-	// 		SET_ERR("Failed to fill rect.");
-	// 		return 1;
-	// 	}
-	// }
 
 	return 0;
 }
