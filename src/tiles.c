@@ -137,6 +137,36 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 			tile->is_blocked_from_above = false;
 		}
 
+		if (above_right_up < num_tiles &&
+			above_right_up >= 0 &&
+			tiles[above_right_up].is_visible &&
+			tiles[above_right_up].dstrect.y == tile->dstrect.y - y_offset - z_offset
+		) {
+			tile->is_blocked_from_above_right_up = true;
+		} else {
+			tile->is_blocked_from_above_right_up = false;
+		}
+
+		if (right < num_tiles &&
+			right >= 0 &&
+			tiles[right].is_visible &&
+			tiles[right].dstrect.y == tile->dstrect.y
+		) {
+			tile->is_blocked_from_right = true;
+		} else {
+			tile->is_blocked_from_right = false;
+		}
+
+		if (left < num_tiles &&
+			left >= 0 &&
+			tiles[left].is_visible &&
+			tiles[left].dstrect.y == tile->dstrect.y
+		) {
+			tile->is_blocked_from_left = true;
+		} else {
+			tile->is_blocked_from_left = false;
+		}
+
 		if (left_down < num_tiles &&
 			left_down >= 0 &&
 			tiles[left_down].is_visible &&
@@ -157,14 +187,24 @@ int tiles_update(tiles_t *tiles_object, SDL_Point mouse, int is_left_click) {
 			tile->is_blocked_from_right_down = false;
 		}
 
-		if (above_right_up < num_tiles &&
-			above_right_up >= 0 &&
-			tiles[above_right_up].is_visible &&
-			tiles[above_right_up].dstrect.y == tile->dstrect.y - y_offset - z_offset
+		if (right_up < num_tiles &&
+			right_up >= 0 &&
+			tiles[right_up].is_visible &&
+			tiles[right_up].dstrect.y == tile->dstrect.y - y_offset
 		) {
-			tile->is_blocked_from_above_right_up = true;
+			tile->is_blocked_from_right_up = true;
 		} else {
-			tile->is_blocked_from_above_right_up = false;
+			tile->is_blocked_from_right_up = false;
+		}
+
+		if (left_up < num_tiles &&
+			left_up >= 0 &&
+			tiles[left_up].is_visible &&
+			tiles[left_up].dstrect.y == tile->dstrect.y - y_offset
+		) {
+			tile->is_blocked_from_left_up = true;
+		} else {
+			tile->is_blocked_from_left_up = false;
 		}
 
 		// Set visibility
@@ -209,7 +249,9 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 		SET_ERR("Arguments cannot be NULL.");
 		return 1;
 	}
+
 	const int num_tiles = tiles->num_tiles;
+	const int srcrect_size = tiles->init_data.srcrect_size;
 
 	static unsigned char old_alpha = 255;
 	static unsigned char new_alpha = 255;
@@ -227,9 +269,55 @@ int tiles_draw(const tiles_t *tiles, SDL_Renderer *ren) {
 		old_alpha = new_alpha;
 
 		if (SDL_RenderCopy(ren, tiles->tex, &tile->srcrect, &tile->dstrect)) {
-			SET_ERR("Failed to copy texture.");
+			SET_ERR("Failed to copy base texture.");
 			return 1;
 		}
+
+		SDL_Rect srcrect = tile->srcrect;
+		if (tile->is_blocked_from_above_right_up) {
+			srcrect.x = srcrect_size * 5;
+			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
+				SET_ERR("Failed to copy shadow texture.");
+				return 1;
+			}
+		}
+
+		if (!tile->is_blocked_from_right_down &&
+			!tile->is_blocked_from_left_down
+		) {
+			srcrect.x = srcrect_size * 3;
+			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
+				SET_ERR("Failed to copy shadow texture.");
+				return 1;
+			}
+		}
+
+		if (tile->is_blocked_from_right) {
+			srcrect.x = srcrect_size * 1;
+			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
+				SET_ERR("Failed to copy shadow texture.");
+				return 1;
+			}
+		}
+
+		if (tile->is_blocked_from_left) {
+			srcrect.x = srcrect_size * 4;
+			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
+				SET_ERR("Failed to copy shadow texture.");
+				return 1;
+			}
+		}
+
+		if (!tile->is_blocked_from_right &&
+			!tile->is_blocked_from_right_up
+		) {
+			srcrect.x = srcrect_size * 2;
+			if (SDL_RenderCopy(ren, tiles->tex, &srcrect, &tile->dstrect)) {
+				SET_ERR("Failed to copy shadow texture.");
+				return 1;
+			}
+		}
+
 	}
 
 	return 0;
