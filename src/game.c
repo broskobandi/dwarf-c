@@ -1,133 +1,63 @@
 #include "game.h"
-#include "sdl.h"
+#include "debug.h"
 #include "error.h"
-#include "tiles.h"
-#include "dwarf.h"
-#include <SDL2/SDL_events.h>
-#include <SDL2/SDL_keyboard.h>
-#include <SDL2/SDL_rect.h>
-#include <SDL2/SDL_render.h>
-#include <SDL2/SDL_timer.h>
-#include <stdio.h>
-#include <stdbool.h>
 
-#define WIN_W 800
-#define WIN_H 600
-
-#define ASSERT(expr)\
-	do {\
-		if (!(expr)) {\
-			game_del(game);\
-			return 1;\
-		}\
-	} while(0)
-
-typedef struct game {
-	sdl_t sdl;
-	tiles_t tiles;
-	dwarf_t dwarf;
-} game_t;
-
-static inline void game_del(game_t *game) {
-	if (game) {
-		dwarf_del(&game->dwarf);
-		tiles_del(&game->tiles);
-		sdl_del(&game->sdl);
-	}
-}
-
-static inline int game_init(game_t *game) {
+int game_init(game_t *game) {
 	if (!game) {
-		SET_ERR("game cannot be NULL.");
+		SET_ERR("Invalid argument.");
 		return 1;
 	}
 
-	ASSERT(!sdl_init(&game->sdl, "Dwarf", WIN_W, WIN_H));
+	if (SDL_Init(SDL_INIT_EVERYTHING)) {
+		fprintf(stderr, "Failed to init SDL.");
+		return 1;
+	}
+	DBG("SDL initialized.");
 
-	const tiles_init_data_t tiles_init_data = {
-		.dstrect_size = 128,
-		.srcrect_size = 32,
-		.hitbox_size = 64,
-		.num_cols = WIN_W / 128,
-		.num_rows = WIN_H / (128 / 4),
-		.y_offset = 128 / 4,
-		.z_offset = 128 / 2,
-		.num_layers = 4
-	};
-	ASSERT(!tiles_init(
-		&game->tiles,
-		game->sdl.ren,
-		"assets/ground4.bmp",
-		tiles_init_data)
+	game->win = SDL_CreateWindow("Dwarf",
+		SDL_WINDOWPOS_CENTERED,
+		SDL_WINDOWPOS_CENTERED,
+		WIN_W, WIN_H,
+		SDL_WINDOW_SHOWN
 	);
+	if (!game->win) {
+		SET_ERR("Failed to create window.");
+		game_del(game);
+		return 1;
+	}
+	DBG("Window created.");
 
-	const dwarf_init_data_t dwarf_init_data = {
-		.dstrect_size = 64,
-		.srcrect_size = 16,
-		.hitbox_size = 64,
-		.num_imgs = 8,
-		.pixels_per_frame = 3,
-		.ticks_per_anim_update = 20,
-		.start_pos = {0, 0}
-	};
-	ASSERT(!dwarf_init(
-		&game->dwarf,
-		game->sdl.ren,
-		"assets/dwarf10.bmp",
-		dwarf_init_data)
-	);
+	game->ren = SDL_CreateRenderer(game->win, -1, SDL_RENDERER_PRESENTVSYNC);
+	if (!game->ren) {
+		SET_ERR("Failed to create renderer.");
+		game_del(game);
+		return 1;
+	}
+	DBG("Renderer created.");
+
+	if (SDL_SetRenderDrawBlendMode(game->ren, SDL_BLENDMODE_BLEND)) {
+		SET_ERR("Failed to set renderer draw blend mode.");
+		game_del(game);
+		return 1;
+	}
+	DBG("Renderer draw blendmode set.");
 
 	return 0;
 }
 
-#undef ASSERT
-#define ASSERT(expr)\
-	do {\
-		if (!(expr)) {\
-			game_del(&game);\
-			return 1;\
-		}\
-	} while(0)
-
-int game_run() {
-	game_t game = {0};
-	ASSERT(!game_init(&game));
-	SDL_Event *event = &game.sdl.event;
-	SDL_Renderer *ren = game.sdl.ren;
-	ASSERT(!SDL_SetRenderDrawBlendMode(ren, SDL_BLENDMODE_BLEND));
-
-	tiles_t *tiles = &game.tiles;
-	dwarf_t *dwarf = &game.dwarf;
-
-	bool is_running = true;
-
-	while (is_running) {
-		bool left_click = false;
-		while (SDL_PollEvent(event)) {
-			if (event->type == SDL_MOUSEBUTTONDOWN) {
-				if (event->button.button == SDL_BUTTON_LEFT) {
-					left_click = true;
-				}
-			}
+void game_del(game_t *game) {
+	DBG("Cleaning up...");
+	if (game) {
+		if (game->win) {
+			SDL_DestroyWindow(game->win);
+			DBG("Window destroyed.");
 		}
-		if (SDL_GetKeyboardState(NULL)[SDL_SCANCODE_Q]) {
-			is_running = false;
+		if (game->ren) {
+			SDL_DestroyRenderer(game->ren);
+			DBG("Renderer destroyed.");
 		}
-		SDL_Point mouse_pos = {0};
-		SDL_GetMouseState(&mouse_pos.x, &mouse_pos.y);
-
-		ASSERT(!tiles_update(tiles, mouse_pos, left_click));
-		ASSERT(!dwarf_update(dwarf, tiles, SDL_GetTicks(), mouse_pos, left_click));
-
-		ASSERT(!SDL_SetRenderDrawColor(ren, 30, 70, 70, 255));
-		ASSERT(!SDL_RenderClear(ren));
-
-		ASSERT(!tiles_draw(tiles, ren));
-		ASSERT(!dwarf_draw(dwarf, ren));
-
-		SDL_RenderPresent(ren);
+		SDL_Quit();
+		DBG("SDL terminated.");
 	}
-
-	game_del(&game);
-	return 0;
+	DBG("Cleanup finished.");
 }
