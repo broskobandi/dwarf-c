@@ -1,4 +1,4 @@
-#!/bin/env sh
+#!/bin/env bash
 
 make BUILD_TYPE=release \
 	CC=gcc \

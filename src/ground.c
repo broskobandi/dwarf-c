@@ -1,97 +1,136 @@
 #include "ground.h"
+#include "debug.h"
 #include "error.h"
-#include <stdbool.h>
-#include <stddef.h>
+#include <SDL2/SDL_rect.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-int ground_init(ground_t *g) {
+#define MAX_NUM_BLOCKS 1024LU
+
+static bool g_is_ground_init = false;
+
+struct ground {
+	block_t blocks[MAX_NUM_BLOCKS];
+	size_t num_blocks;
+	ground_init_data_t init_data;
+	size_t tex_id;
+};
+
+ground_t *ground_init(ground_init_data_t init_data, size_t tex_id) {
+	if (g_is_ground_init) {
+		SET_ERR("Ground has already been initialized.");
+		return NULL;
+	}
+
+	ground_t *g = calloc(1, sizeof(ground_t));
+	if (!g) {
+		SET_ERR("Failed to allocate ground.");
+		return NULL;
+	}
+	DBG("Ground allocated.");
+
+	g->init_data = init_data;
+	g->tex_id = tex_id;
+
+	const size_t num_rows = g->init_data.num_rows;
+	const size_t num_cols = g->init_data.num_cols;
+	const size_t num_layers = g->init_data.num_layers;
+	const float origin_x = g->init_data.origin_x;
+	const float origin_y = g->init_data.origin_y;
+	const float x_offset = g->init_data.x_offset;
+	const float y_offset = g->init_data.y_offset;
+	const float z_offset = g->init_data.z_offset;
+	const float dstrect_size = g->init_data.in_game_sprite_size;
+	const float hitbox_size = g->init_data.hitbox_size;
+	const int srcrect_size = g->init_data.real_img_size;
+
+	for (size_t layer = 0; layer < num_layers; layer++) {
+	 for (size_t row = 0; row < num_rows; row++) {
+	  for (size_t col = 0; col < num_cols; col++) {
+		if (g->num_blocks + 1 > MAX_NUM_BLOCKS) {
+			SET_ERR("MAX_NUM_BLOCKS buffer overflow.");
+			return NULL;
+		}
+		SDL_FRect dstrect = {
+			.x = origin_x + (float)col * x_offset,
+			.y = origin_y + (float)col * y_offset -
+				z_offset * (float)layer,
+			.w = dstrect_size,
+			.h = dstrect_size
+		};
+		SDL_FRect hitbox = {
+			.x = dstrect.x + (dstrect_size - hitbox_size) / 2,
+			.y = dstrect.y,
+			.w = hitbox_size,
+			.h = hitbox_size
+		};
+		SDL_Rect srcrect = {
+			.x = 0,
+			.y = 0,
+			.w = srcrect_size,
+			.h = srcrect_size
+		};
+		block_t block = {
+			.dstrect = dstrect,
+			.srcrect = srcrect,
+			.hitbox = hitbox,
+			.layer = layer,
+			.row = row,
+			.col = col
+		};
+		g->blocks[g->num_blocks] = block;
+		g->num_blocks++;
+	  }
+	 }
+	}
+
+	g_is_ground_init = true;
+	DBG("Ground initialized.");
+
+	return g;
+}
+
+const block_t *ground_get_blocks(const ground_t *ground) {
+	if (!ground || !g_is_ground_init) {
+		SET_ERR("Invalid argument.");
+		return NULL;
+	}
+
+	return ground->blocks;
+}
+
+size_t ground_get_num_blocks(const ground_t *ground) {
+	if (!ground || !g_is_ground_init) {
+		SET_ERR("Invalid argument.");
+		return -1lu;
+	}
+
+	return ground->num_blocks;
+}
+
+size_t ground_get_tex_id(const ground_t *ground) {
+	if (!ground || !g_is_ground_init) {
+		SET_ERR("Invalid argument.");
+		return -1lu;
+	}
+
+	return ground->tex_id;
+}
+
+int ground_update(ground_t *g) {
 	if (!g) {
 		SET_ERR("Invalid argument.");
 		return 1;
 	}
 
-	g->num_tiles_per_layer = g->num_cols * g->num_rows;
-
-	for (int z = 0; z < g->num_layers; z++) {
-		for (int y = 0; y < g->num_rows; y++) {
-			float x_offset = y % 2 == 0 ? 0 : g->dstrect_size / 2;
-			for (int x = 0; x < g->num_cols; x++) {
-				if (g->num_tiles + 1 > MAX_NUM_TILES) {
-					SET_ERR("Tiles buffer overflow.");
-					return 1;
-				}
-
-				tile_t tile = {
-					.dstrect = {
-						.x = (float)x * g->dstrect_size + x_offset,
-						.y = (float)y - g->spatial_offset - (g->z_offset * (float)z),
-						.w = g->dstrect_size,
-						.h = g->dstrect_size
-					},
-					.srcrect = {
-						.x = 0,
-						.y = 0,
-						.w = g->srcrect_size,
-						.h = g->srcrect_size
-					},
-					.hitbox = {
-						.x = tile.dstrect.x + (g->dstrect_size - g->hitbox_size) / 2,
-						.y = tile.dstrect.y,
-						.w = g->hitbox_size,
-						.h = g->dstrect_size
-					},
-					.top = {
-						.x = tile.dstrect.x + g->dstrect_size / 2,
-						.y = tile.dstrect.y,
-						.z = tile.dstrect.y + g->spatial_offset
-					},
-					.is_highlighted = false,
-					.is_selected = false,
-					.is_blocked_from_above = false
-				};
-				g->tiles[g->num_tiles] = tile;
-				g->num_tiles++;
-			}
-		}
-	}
 
 	return 0;
 }
 
-int ground_update(ground_t *g, SDL_Point mouse, bool left_click) {
-	if (!g) {
-		SET_ERR("Invalid argument.");
-		return 1;
-	}
-
-	for (size_t i = 0; i < g->num_tiles; i++) {
-		tile_t *tile = &g->tiles[i];
-		if ((float)mouse.x >= tile->dstrect.x &&
-			(float)mouse.x <= tile->dstrect.x + g->dstrect_size &&
-			(float)mouse.y >= tile->dstrect.y &&
-			(float)mouse.x <= tile->dstrect.y &&
-			!tile->is_blocked_from_above
-		) {
-			tile->is_highlighted = true;
-		} else {
-			tile->is_highlighted = false;
-		}
-		if (tile->is_highlighted && left_click) {
-			if (!tile->is_selected) {
-				tile->is_selected = true;
-			} else {
-				tile->is_selected = false;
-			}
-		}
-	}
-	
-	return 0;
-}
-
-void ground_del(ground_t *g) {
-	if (g) {
-		if (g->tex) {
-			SDL_DestroyTexture(g->tex);
-			DBG("Ground texture destroyed.");
-		}
+void ground_del(ground_t *ground) {
+	if (ground) {
+		free(ground);
+		g_is_ground_init = false;
+		DBG("Ground destroyed.");
 	}
 }
