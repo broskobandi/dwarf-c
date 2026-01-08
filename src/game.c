@@ -5,6 +5,7 @@
 #include "debug.h"
 #include "error.h"
 #include "ground.h"
+#include "entity.h"
 #include <stdlib.h>
 #include <string.h>
 #include <SDL2/SDL.h>
@@ -26,12 +27,14 @@ struct game {
 	
 	// Game objects
 	ground_t *ground;
+	entity_t *entity;
 };
 
 
 game_t *game_init(
 	game_init_data_t game_init_data,
-	ground_init_data_t ground_init_data
+	ground_init_data_t ground_init_data,
+	entity_init_data_t entity_init_data
 ) {
 	// GAME
 
@@ -47,8 +50,8 @@ game_t *game_init(
 		return NULL;
 	}
 
-	game_t *g = calloc(1, sizeof(game_t));
-	if (!g) {
+	game_t *game = calloc(1, sizeof(game_t));
+	if (!game) {
 		SET_ERR("Failed to allocate game.");
 		SDL_Quit();
 		DBG("SDL terminated.");
@@ -56,7 +59,7 @@ game_t *game_init(
 	}
 	DBG("Game created.");
 
-	g->win = SDL_CreateWindow(
+	game->win = SDL_CreateWindow(
 		title,
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
@@ -64,62 +67,83 @@ game_t *game_init(
 		win_h,
 		SDL_WINDOW_SHOWN
 	);
-	if (!g->win) {
+	if (!game->win) {
 		SET_ERR("Failed to create window.");
-		game_del(g);
+		game_del(game);
 		return NULL;
 	}
 	DBG("Window created.");
 
-	g->ren = SDL_CreateRenderer(
-		g->win,
+	game->ren = SDL_CreateRenderer(
+		game->win,
 		-1,
 		vsync ? SDL_RENDERER_PRESENTVSYNC : 0
 	);
-	if (!g->ren) {
+	if (!game->ren) {
 		SET_ERR("Failed to create renderer.");
-		game_del(g);
+		game_del(game);
 		return NULL;
 	}
 	DBG("Renderer created.");
 
-	g->init_data = game_init_data;
+	game->init_data = game_init_data;
 	g_is_game_init = true;
 	DBG("Game initialization finished.");
 
 	// GROUND
 
-	DBG("Initializing ground.");
+	DBG("Initializing ground...");
 
-	const size_t ground_tex_id = create_texture(g, ground_init_data.path_to_spritesheet_bmp);
+	const size_t ground_tex_id = create_texture(
+		game, ground_init_data.path_to_spritesheet_bmp
+	);
 	if (ground_tex_id == -1lu) {
-		game_del(g);
+		game_del(game);
 		return NULL;
 	}
-	g->ground = ground_init(ground_init_data, ground_tex_id);
-	if (!g->ground) {
-		game_del(g);
+	game->ground = ground_init(ground_init_data, ground_tex_id);
+	if (!game->ground) {
+		game_del(game);
 		return NULL;
 	}
 	DBG("Ground initialization finished.");
 
-	return g;
+	// ENTITY
+	
+	DBG("Initializing entity...");
+
+	const size_t entity_tex_id = create_texture(
+		game, entity_init_data.path_to_spritesheet_bmp
+	);
+	if (entity_tex_id == -1lu) {
+		game_del(game);
+		return NULL;
+	}
+	game->entity = entity_new(entity_init_data, entity_tex_id);
+	if (!game->entity) {
+		game_del(game);
+		return NULL;
+	}
+
+	DBG("Entity initialization finished.");
+
+	return game;
 }
 
-static inline size_t create_texture(game_t *g, const char *path_to_bmp) {
-	if (!g || !g_is_game_init) {
+static inline size_t create_texture(game_t *game, const char *path_to_bmp) {
+	if (!game || !g_is_game_init) {
 		SET_ERR("Invalid argument.");
 		return (size_t)-1;
 	}
 
-	for (size_t i = 0; i < g->num_textures; i++) {
-		if (!strcmp(g->loaded_texture_paths[i], path_to_bmp)) {
+	for (size_t i = 0; i < game->num_textures; i++) {
+		if (!strcmp(game->loaded_texture_paths[i], path_to_bmp)) {
 			DBG("Texture has already been loaded.");
 			return i;
 		}
 	}
 
-	if (g->num_textures + 1 > MAX_NUM_TEXTURES) {
+	if (game->num_textures + 1 > MAX_NUM_TEXTURES) {
 		SET_ERR("MAX_NUM_TEXTURES buffer overflow.");
 		return (size_t)-1;
 	}
@@ -131,7 +155,7 @@ static inline size_t create_texture(game_t *g, const char *path_to_bmp) {
 	}
 	DBG("Surface created.");
 
-	SDL_Texture *tex = SDL_CreateTextureFromSurface(g->ren, sur);
+	SDL_Texture *tex = SDL_CreateTextureFromSurface(game->ren, sur);
 	if (!tex) {
 		SET_ERR("Failed to create texture.");
 		SDL_FreeSurface(sur);
@@ -143,35 +167,40 @@ static inline size_t create_texture(game_t *g, const char *path_to_bmp) {
 	SDL_FreeSurface(sur);
 	DBG("Surface freed.");
 
-	g->textures[g->num_textures] = tex;
-	g->num_textures++;
+	game->textures[game->num_textures] = tex;
+	game->loaded_texture_paths[game->num_textures] = path_to_bmp;
+	game->num_textures++;
 
-	return g->num_textures - 1;
+	return game->num_textures - 1;
 }
 
-int render_objects(
+static inline int render_objects(
 	const game_t *game,
-	const block_t *blocks,
-	size_t num_blocks,
-	size_t ground_tex_id
+	const ground_render_data_t *ground_render_data,
+	const entity_render_data_t *entity_render_data
 ) {
-	if (!game || !g_is_game_init || !blocks || num_blocks == -1lu) {
+	if (	!game || !g_is_game_init ||
+		!ground_render_data ||
+		!entity_render_data
+	) {
 		SET_ERR("Invalid arguments.");
 		return 1;
 	}
 
-	if (ground_tex_id >= MAX_NUM_TEXTURES) {
+	if (ground_render_data->tex_id >= MAX_NUM_TEXTURES) {
 		SET_ERR("ground_tex_id is out of bounds.");
 		return 1;
 	}
 
-	SDL_Texture *tex = game->textures[ground_tex_id];
+	SDL_Texture *ground_tex = game->textures[ground_render_data->tex_id];
+	const size_t num_blocks = ground_render_data->num_blocks;
+	const block_t *blocks = ground_render_data->blocks;
 	
 	for (size_t i = 0; i < num_blocks; i++) {
 		const block_t *block = &blocks[i];
 		if (SDL_RenderCopyF(
 			game->ren,
-			tex,
+			ground_tex,
 			&block->srcrect,
 			&block->dstrect)
 		) {
@@ -179,6 +208,20 @@ int render_objects(
 			return 1;
 		}
 	}
+
+	if (entity_render_data->tex_id >= MAX_NUM_TEXTURES) {
+		SET_ERR("entity_tex_id is out of bounds.");
+		return 1;
+	}
+
+	SDL_Texture *entity_tex = game->textures[entity_render_data->tex_id];
+
+	SDL_RenderCopyF(
+		game->ren,
+		entity_tex,
+		&entity_render_data->srcrect,
+		&entity_render_data->dstrect
+	);
 
 	return 0;
 }
@@ -208,14 +251,12 @@ int game_run(game_t *game) {
 			}
 		}
 
-		if (
-			SDL_SetRenderDrawColor(
+		if (	SDL_SetRenderDrawColor(
 				game->ren,
 				bg_r, 
 				bg_g,
 				bg_b,
-				255
-			)
+				255)
 		) {
 			SET_ERR("Failed to set render draw color.");
 			return 1;
@@ -226,11 +267,10 @@ int game_run(game_t *game) {
 			return 1;
 		}
 
-		if (render_objects(
-			game,
-			ground_get_blocks(game->ground),
-			ground_get_num_blocks(game->ground),
-			ground_get_tex_id(game->ground))
+		if (	render_objects(
+				game,
+				ground_get_render_data(game->ground),
+				entity_get_render_data(game->entity))
 		) {
 			return 1;
 		}
@@ -243,47 +283,58 @@ int game_run(game_t *game) {
 	return 0;
 }
 
-void game_del(game_t *g) {
-	if (!g) return;
+void game_del(game_t *game) {
+	if (!game) return;
 
 	DBG("Cleaning up...");
+
+	// Entity
+	
+	DBG("Cleaning up entity...");
+
+	if (game->entity) {
+		entity_del(game->entity);
+	}
+
+	DBG("Entity cleanup finished.");
 
 	// GROUND
 
 	DBG("Cleaning up ground...");
 
-	if (g->ground) {
-		ground_del(g->ground);
+	if (game->ground) {
+		ground_del(game->ground);
 	}
+
 	DBG("Ground cleanup finished.");
 	
 	// GAME
 
 	DBG("Cleaning up game...");
 
-	if (g->num_textures) {
-		for (size_t i = 0; i < g->num_textures; i++) {
-			if (g->textures[i]) {
-				SDL_DestroyTexture(g->textures[i]);
+	if (game->num_textures) {
+		for (size_t i = 0; i < game->num_textures; i++) {
+			if (game->textures[i]) {
+				SDL_DestroyTexture(game->textures[i]);
 			}
 		}
 		DBG("Textures destroyed.");
 	}
 
-	if (g->ren) {
-		SDL_DestroyRenderer(g->ren);
+	if (game->ren) {
+		SDL_DestroyRenderer(game->ren);
 		DBG("Renderer destroyed.");
 	}
 
-	if (g->win) {
-		SDL_DestroyWindow(g->win);
+	if (game->win) {
+		SDL_DestroyWindow(game->win);
 		DBG("Window destroyed.");
 	}
 
 	SDL_Quit();
 	DBG("SDL terminated.");
 
-	free(g);
+	free(game);
 	
 	DBG("Game deleted.");
 	g_is_game_init = false;

@@ -44,6 +44,7 @@ typedef struct ground_init_data {
 typedef struct entity_init_data {
 	float x, y, z; // starting position
 	float in_game_sprite_size;
+	float hitbox_size;
 	const char *path_to_spritesheet_bmp;
 	size_t num_imgs;
 	int real_img_size;

@@ -13,16 +13,16 @@
 
 // Ground init data
 #define GROUND_IN_GAME_SPRITE_SIZE 128
-#define GROUND_ORIGIN_X (float)GAME_WIN_W / 2 - GROUND_IN_GAME_SPRITE_SIZE / 2
+#define GROUND_ORIGIN_X (float)GAME_WIN_W / 2 - (float)GROUND_IN_GAME_SPRITE_SIZE / 2
 #define GROUND_ORIGIN_Y 0
 // WE NEED A GROUND_ORIGIN_Z here
 #define GROUND_NUM_LAYERS 2
 #define GROUND_NUM_COLS 6
 #define GROUND_NUM_ROWS 4
 #define GROUND_HITBOX_SIZE GROUND_IN_GAME_SPRITE_SIZE / 2 // the default pos
-														  // of the hitbox is
-														  // the top center 
-														  // of the block
+							  // of the hitbox is
+							  // the top center 
+							  // of the block
 #define GROUND_PATH_TO_SPRITESHEET_BMP "assets/ground4.bmp"
 #define GROUND_REAL_IMG_SIZE 32
 #define GROUND_BASE_IMG 0
@@ -36,6 +36,18 @@
 #define GROUND_Y_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 4
 #define GROUND_Z_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 4
 /* #define GROUND_Z_OFFSET GROUND_X_OFFSET / 2.0f */
+
+// ENTITY INIT DATA
+#define ENTITY_IN_GAME_SPRITE_SIZE 64
+#define ENTITY_X (float)GAME_WIN_W / 2 - (float)ENTITY_IN_GAME_SPRITE_SIZE / 2
+#define ENTITY_Y 0
+#define ENTITY_Z GROUND_Z_OFFSET * 5
+#define ENTITY_HITBOX_SIZE ENTITY_IN_GAME_SPRITE_SIZE
+#define ENTITY_REAL_IMG_SIZE 16
+#define ENTITY_PATH_TO_SPRITESHEET_BMP "assets/dwarf10.bmp"
+#define ENTITY_NUM_IMGS 8
+#define ENTITY_TICKS_PER_IMG_UPDATE 10
+#define ENTITY_PIXELS_PER_FRAME 10
 
 int main(void) {
 	game_init_data_t game_init_data = {
@@ -67,9 +79,22 @@ int main(void) {
 		.y_offset = GROUND_Y_OFFSET,
 		.z_offset = GROUND_Z_OFFSET
 	};
+	entity_init_data_t entity_init_data = {
+		.x = ENTITY_X,
+		.y = ENTITY_Y,
+		.z = ENTITY_Z,
+		.in_game_sprite_size = ENTITY_IN_GAME_SPRITE_SIZE,
+		.hitbox_size = ENTITY_HITBOX_SIZE,
+		.path_to_spritesheet_bmp = ENTITY_PATH_TO_SPRITESHEET_BMP,
+		.num_imgs = ENTITY_NUM_IMGS,
+		.real_img_size = ENTITY_REAL_IMG_SIZE,
+		.ticks_per_img_update = ENTITY_TICKS_PER_IMG_UPDATE,
+		.pixels_per_frame = ENTITY_PIXELS_PER_FRAME
+	};
 	game_t *game = game_init(
 		game_init_data,
-		ground_init_data
+		ground_init_data,
+		entity_init_data
 	);
 	if (!game) {
 		fprintf(stderr, "%s\n", get_err());
