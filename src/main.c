@@ -12,17 +12,17 @@
 #define GAME_BG_COLOR_B 70
 
 // Ground init data
-#define GROUND_ORIGIN_X (float)GAME_WIN_W / 2.0f
+#define GROUND_IN_GAME_SPRITE_SIZE 128
+#define GROUND_ORIGIN_X (float)GAME_WIN_W / 2 - GROUND_IN_GAME_SPRITE_SIZE / 2
 #define GROUND_ORIGIN_Y 0
 // WE NEED A GROUND_ORIGIN_Z here
 #define GROUND_NUM_LAYERS 2
-#define GROUND_NUM_COLS 2
-#define GROUND_NUM_ROWS 2
-#define GROUND_IN_GAME_SPRITE_SIZE 128
+#define GROUND_NUM_COLS 6
+#define GROUND_NUM_ROWS 4
 #define GROUND_HITBOX_SIZE GROUND_IN_GAME_SPRITE_SIZE / 2 // the default pos
-							  // of the hitbox is
-							  // the top center 
-							  // of the block
+														  // of the hitbox is
+														  // the top center 
+														  // of the block
 #define GROUND_PATH_TO_SPRITESHEET_BMP "assets/ground4.bmp"
 #define GROUND_REAL_IMG_SIZE 32
 #define GROUND_BASE_IMG 0
@@ -32,9 +32,9 @@
 #define GROUND_RIGHT_LIGHT_IMG 0
 #define GROUND_HIGHLIGHT_IMG 0
 #define GORUND_SELECT_IMG 0
-#define GROUND_X_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 2.0f
-#define GROUND_Y_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 2.0f
-#define GROUND_Z_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 4.0f
+#define GROUND_X_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 2
+#define GROUND_Y_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 2
+#define GROUND_Z_OFFSET (float)GROUND_IN_GAME_SPRITE_SIZE / 4
 /* #define GROUND_Z_OFFSET GROUND_X_OFFSET / 2.0f */
 
 int main(void) {

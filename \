@@ -52,9 +52,9 @@ ground_t *ground_init(ground_init_data_t init_data, size_t tex_id) {
 					return NULL;
 				}
 				SDL_FRect dstrect = {
-					.x = origin_x + (float)col * x_offset - (float)row * x_offset,
-					.y = origin_y + (float)row * z_offset + (float)col * z_offset -
-						 (float)layer * z_offset,
+					.x = origin_x + (float)col * x_offset,
+					.y = origin_y + (float)col * y_offset -
+						z_offset * (float)layer,
 					.w = dstrect_size,
 					.h = dstrect_size
 				};
@@ -79,7 +79,7 @@ ground_t *ground_init(ground_init_data_t init_data, size_t tex_id) {
 					.col = col
 				};
 				ground->blocks[ground->num_blocks] = block;
-				ground->num_blocks++;
+				ground->num_blocks++:
 			}
 		}
 	}
@@ -90,13 +90,13 @@ ground_t *ground_init(ground_init_data_t init_data, size_t tex_id) {
 	return ground;
 }
 
-const block_t *ground_get_blocks(const ground_t *ground) {
+const block_t ***ground_get_blocks(const ground_t *ground) {
 	if (!ground || !g_is_ground_init) {
 		SET_ERR("Invalid argument.");
 		return NULL;
 	}
 
-	return ground->blocks;
+	return (const block_t***)ground->blocks;
 }
 
 size_t ground_get_num_blocks(const ground_t *ground) {
