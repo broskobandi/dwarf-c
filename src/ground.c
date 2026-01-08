@@ -53,7 +53,7 @@ ground_t *ground_init(ground_init_data_t init_data, size_t tex_id) {
 				}
 				SDL_FRect dstrect = {
 					.x = origin_x + (float)col * x_offset - (float)row * x_offset,
-					.y = origin_y + (float)row * z_offset + (float)col * z_offset -
+					.y = origin_y + (float)row * y_offset + (float)col * z_offset -
 						 (float)layer * z_offset,
 					.w = dstrect_size,
 					.h = dstrect_size
