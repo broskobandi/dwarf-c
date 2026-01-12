@@ -12,9 +12,9 @@ int main(void) {
 		.win_h = WIN_H,
 		.vsync = 1,
 		.ground_init_data = {
-			.num_cols = 4,
+			.num_cols = 6,
 			.num_rows = 6,
-			.num_layers = 2,
+			.num_layers = 1,
 			.path_to_bmp = "../assets/ground4.bmp",
 			.block_size = BLOCK_SIZE,
 			.img_size = 32,
@@ -24,7 +24,7 @@ int main(void) {
 			.z_offset = BLOCK_SIZE / 2,
 			.origin_x = (float)WIN_W / 2 - BLOCK_SIZE / 2,
 			.origin_y = 0.0f,
-			.origin_z = 0.0f
+			.origin_z = (float)WIN_H / 4
 		},
 		.entity_init_data = {
 			.size = 64.0f,

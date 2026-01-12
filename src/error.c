@@ -3,10 +3,17 @@
 #include <string.h>
 #include <SDL2/SDL_error.h>
 
+/** Buffer for storing the error information in. */
 #define ERR_BUFF_SIZE 512lu
 
+/** Thread-local global error char buffer. */
 _Thread_local char g_err[ERR_BUFF_SIZE];
 
+/** Sets the internal error state.
+ * \param msg The error message.
+ * \param file The name of the current file.
+ * \param func The name of the current function. 
+ * \param line The current line. */
 void set_err(const char* msg, const char *file, const char *func, int line) {
 	const char *err_header = "[ERR]: ";
 	if (	strlen(err_header) +
@@ -24,6 +31,7 @@ void set_err(const char* msg, const char *file, const char *func, int line) {
 	);
 }
 
+/** Prints the current error state. */
 void print_err() {
 	fprintf(stderr, "%s\n", g_err);
 }

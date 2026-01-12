@@ -4,11 +4,17 @@
 #include <stdlib.h>
 #include <stddef.h>
 
+/** The definition of the opaque ground object. */
 struct ground {
 	blocks_vec_t blocks_vec;
 	ground_init_data_t init_data;
 };
 
+/** Creates a new ground instance.
+ * \param init_data The ground init data.
+ * \param tex_id The id of the texture.
+ * \returns A pointer to the new ground object or NULL on failure.
+ * Sets the internal error state on failure. */
 ground_t *ground_new(ground_init_data_t init_data, size_t tex_id) {
 	ground_t *ground = calloc(1, sizeof(ground_t));
 	if (!ground) {
@@ -22,6 +28,7 @@ ground_t *ground_new(ground_init_data_t init_data, size_t tex_id) {
 	const size_t num_layers = init_data.num_layers;
 	const float dstrect_size = init_data.block_size;
 	const int srcrect_size = init_data.img_size;
+	const float hitbox_size = init_data.hitbox_size;
 	const float x_offset = init_data.x_offset;
 	const float y_offset = init_data.y_offset;
 	const float z_offset = init_data.z_offset;
@@ -63,15 +70,23 @@ ground_t *ground_new(ground_init_data_t init_data, size_t tex_id) {
 					(float)col * x_offset -
 					(float)row * x_offset;
 				block->dstrect.y =
+					origin_z +
 					origin_y +
 					(float)row * y_offset +
 					(float)col * y_offset -
 					(float)layer * z_offset;
 				block->dstrect.w = dstrect_size;
 				block->dstrect.h = dstrect_size;
+				block->hitbox.x =
+					block->dstrect.x +
+					(dstrect_size - hitbox_size) / 2;
+				block->hitbox.y = block->dstrect.y;
+				block->hitbox.w = hitbox_size;
+				block->hitbox.h = hitbox_size;
 			}
 		}
 	}
+	ground->blocks_vec.is_init = 1;
 	DBG("Blocks created.");
 
 
@@ -80,6 +95,10 @@ ground_t *ground_new(ground_init_data_t init_data, size_t tex_id) {
 	return ground;
 }
 
+/** Updates the internal state of the gound object.
+ * \param ground A pointer to the ground object.
+ * \returns 0 success or 1 on failure.
+ * Sets the internal error state on failure. */
 int ground_update(ground_t *ground) {
 	if (!ground) {
 		SET_ERR("Invalid arguments.");
@@ -91,6 +110,11 @@ int ground_update(ground_t *ground) {
 	return 0;
 }
 
+/** Returns a const pointer to the block vector assoicated with a ground
+ * object.
+ * \param ground A pointer to the ground object.
+ * \returns A const pointer to the vector object or NULL on failure. 
+ * Sets the internal error state on failure. */
 const blocks_vec_t *ground_get_blocks_vec(const ground_t *ground) {
 	if (!ground) {
 		SET_ERR("Invalid arguments.");
@@ -100,22 +124,23 @@ const blocks_vec_t *ground_get_blocks_vec(const ground_t *ground) {
 	return (const blocks_vec_t*)&ground->blocks_vec;
 }
 
+/** Cleans up all memory allocated for the ground object.
+ * \param ground A pointer to the ground object. */
 void ground_del(ground_t *ground) {
-	if (ground) {
-		if (ground->blocks_vec.blocks) {
-		 for (size_t layer = 0; layer < ground->blocks_vec.num_layers; layer++) {
-		  if (ground->blocks_vec.blocks[layer]) {
-		   for (size_t row = 0; row < ground->blocks_vec.num_rows; row++) {
-		    if (ground->blocks_vec.blocks[layer][row]) {
-		     free(ground->blocks_vec.blocks[layer][row]);
-		    }
-		   }
-		  }
-		  free(ground->blocks_vec.blocks[layer]);
-		 }
-		 free(ground->blocks_vec.blocks);
+	if (!ground) return;
+	const size_t num_layers = ground->blocks_vec.num_layers;
+	const size_t num_rows = ground->blocks_vec.num_rows;
+	if (ground->blocks_vec.blocks) {
+		for (size_t layer = 0; layer < num_layers; layer++) {
+			if (!ground->blocks_vec.blocks[layer]) continue;
+			for (size_t row = 0; row < num_rows; row++) {
+				if (!ground->blocks_vec.blocks[layer][row]) continue;
+				free(ground->blocks_vec.blocks[layer][row]);
+			}
+			free(ground->blocks_vec.blocks[layer]);
 		}
-		free(ground);
-		DBG("Ground destroyed.");
+		free(ground->blocks_vec.blocks);
 	}
+	free(ground);
+	DBG("Ground destroyed.");
 }
