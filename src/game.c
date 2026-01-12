@@ -9,7 +9,6 @@
 struct game {
 	SDL_Window *win;
 	SDL_Renderer *ren;
-	SDL_Event event;
 	ground_t *ground;
 	entity_t *entity;
 };
@@ -74,6 +73,30 @@ int game_run() {
 	if (!g_is_init) {
 		SET_ERR("Game must be initialized before running game_run()");
 		return 1;
+	}
+
+	SDL_Event event;
+	int is_running = 1;
+
+	while (is_running) {
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_QUIT ||
+			   (event.type == SDL_KEYDOWN &&
+			    event.key.keysym.sym == SDLK_q)
+			) {
+				is_running = 0;
+			}
+		}
+		if (SDL_SetRenderDrawColor(g_game.ren, 30, 70, 70, 255)) {
+			SET_ERR("Failed to set render draw color.");
+			return 1;
+		}
+		if (SDL_RenderClear(g_game.ren)) {
+			SET_ERR("Failed to clear renderer.");
+			return 1;
+		}
+
+		SDL_RenderPresent(g_game.ren);
 	}
 
 	return 0;

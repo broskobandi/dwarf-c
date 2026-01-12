@@ -7,11 +7,4 @@ else
 	"./build/$OS/$BUILD_TYPE/game"
 fi
 
-STATUS=$?
-
-if [ $STATUS != 0 ]; then
-	echo "Game failed with status code: $STATUS."
-	exit 1
-else
-	echo "Game finished with status code: $STATUS"
-fi
+echo "Running $BUILD_TYPE build for $OS exited with status code: $?."

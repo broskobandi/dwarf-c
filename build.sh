@@ -59,7 +59,7 @@ if [ $? != 0 ]; then
 	exit 1
 fi
 
-echo "Build finished."
+echo "$BUILD_TYPE build for $OS finished."
 
 if [ "$OS" = "windows" ]; then
 	cp "$SDL_DIR/bin/SDL2.dll" "build/$OS/$BUILD_TYPE/"
