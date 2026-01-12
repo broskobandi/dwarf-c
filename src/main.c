@@ -1,22 +1,30 @@
 #include "game.h"
 #include "error.h"
 
+#define WIN_W 800
+#define WIN_H 600
+#define BLOCK_SIZE 128.0f
+
 int main(void) {
 	game_init_data_t init_data = {
 		.title = "Dwarf",
-		.win_w = 800,
-		.win_h = 600,
+		.win_w = WIN_W,
+		.win_h = WIN_H,
 		.vsync = 1,
 		.ground_init_data = {
 			.num_cols = 4,
 			.num_rows = 6,
 			.num_layers = 2,
 			.path_to_bmp = "../assets/ground4.bmp",
-			.block_size = 128.0f,
-			.hitbox_size = 64.0f,
-			.x_offset = 64.0f,
-			.y_offset = 32.0f,
-			.z_offset = 64.0f
+			.block_size = BLOCK_SIZE,
+			.img_size = 32,
+			.hitbox_size = BLOCK_SIZE / 2,
+			.x_offset = BLOCK_SIZE / 2,
+			.y_offset = BLOCK_SIZE / 4,
+			.z_offset = BLOCK_SIZE / 2,
+			.origin_x = (float)WIN_W / 2 - BLOCK_SIZE / 2,
+			.origin_y = 0.0f,
+			.origin_z = 0.0f
 		},
 		.entity_init_data = {
 			.size = 64.0f,
