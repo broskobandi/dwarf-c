@@ -1,12 +1,16 @@
 #!/bin/env sh
 
 . ./build.sh
-"./build/$OS/$BUILD_TYPE/game"
+if [ "$OS" = "windows" ]; then
+	wine "./build/$OS/$BUILD_TYPE/game.exe"
+else
+	"./build/$OS/$BUILD_TYPE/game"
+fi
 
 STATUS=$?
 
 if [ $STATUS != 0 ]; then
-	echo "make run failed."
+	echo "Game failed with status code: $STATUS."
 	exit 1
 else
 	echo "Game finished with status code: $STATUS"
