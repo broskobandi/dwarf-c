@@ -3,6 +3,10 @@
 
 #include <stddef.h>
 
+typedef struct block {
+
+} block_t;
+
 typedef struct ground_init_data {
 	size_t num_cols;
 	size_t num_rows;
@@ -17,7 +21,7 @@ typedef struct ground_init_data {
 
 typedef struct ground ground_t;
 
-ground_t *ground_new(ground_init_data_t init_data);
+ground_t *ground_new(ground_init_data_t init_data, size_t tex_id);
 void ground_del(ground_t *ground);
 
 #endif
