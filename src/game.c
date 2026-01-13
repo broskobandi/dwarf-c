@@ -86,6 +86,31 @@ static inline size_t load_texture(const char *path_to_bmp) {
 	return g_game.num_tex - 1;
 }
 
+static inline int render_block(
+	const block_t *block,
+	SDL_Texture *tex,
+	size_t img_index
+) {
+	if (!block || !tex) {
+		SET_ERR("Invalid argument.");
+		return 1;
+	}
+	SDL_Rect srcrect = block->srcrect;
+	srcrect.x = (int)(img_index * (size_t)srcrect.w);
+
+	if (SDL_RenderCopyF(
+		g_game.ren,
+		tex,
+		&srcrect,
+		&block->dstrect
+	)) {
+		SET_ERR("Failed to render block.");
+		return 1;
+	}
+
+	return 0;
+}
+
 /** Renders the ground blocks.
  * \returns 0 on success or 1 on failure.
  * Sets the internal error state on failure. */
@@ -96,36 +121,56 @@ static inline int render_ground() {
 	}
 
 	const blocks_vec_t *blocks_vec = ground_get_blocks_vec(g_game.ground);
+	const ground_init_data_t *init_data = &blocks_vec->init_data;
 	const block_t ***blocks = (const block_t ***)blocks_vec->blocks;
-	const size_t num_layers = blocks_vec->num_layers;
-	const size_t num_cols = blocks_vec->num_cols;
-	const size_t num_rows = blocks_vec->num_rows;
+	const size_t num_layers = init_data->num_layers;
+	const size_t num_cols = init_data->num_cols;
+	const size_t num_rows = init_data->num_rows;
+	const size_t highlight_img_index = init_data->highlight_img_index;
+	const size_t select_img_index = init_data->select_img_index;
 	SDL_Texture *(*textures)[TEXTURES_BUFF_SIZE] = &g_game.textures;
 
 	for (size_t layer = 0; layer < num_layers; layer++) {
 		for (size_t row = 0; row < num_rows; row++) {
 			for (size_t col = 0; col < num_cols; col++) {
 				const block_t *block = &blocks[layer][row][col];
+				if (!block->is_visible) continue;
 				SDL_Texture *tex = (*textures)[block->tex_id];
-				SDL_RenderCopyF(
-					g_game.ren,
-					tex,
-					&block->srcrect,
-					&block->dstrect
-	  			);
+
+				if (render_block(block, tex, 0))
+					return 1;
+				
+				if (block->is_selected) {
+					if (render_block(block, tex, select_img_index))
+						return 1;
+				}
+
+				if (block->is_highlighted) {
+					if (render_block(block, tex, highlight_img_index))
+						return 1;
+				}
 	 		}
 		}
 	}
 
-	for (size_t layer = 0; layer < num_layers; layer++) {
-		for (size_t row = 0; row < num_rows; row++) {
-			for (size_t col = 0; col < num_cols; col++) {
-				const block_t *block = &blocks[layer][row][col];
-				SDL_SetRenderDrawColor(g_game.ren, 150, 0, 0, 128);
-				SDL_RenderFillRectF(g_game.ren, &block->hitbox);
-			}
+	if (blocks_vec->selected_block) {
+		const block_t *sel_block = blocks_vec->selected_block;
+		if (sel_block->is_active) {
+			SDL_Texture *tex = (*textures)[sel_block->tex_id];
+			if (render_block(sel_block, tex, select_img_index))
+				return 1;
 		}
 	}
+
+	/* for (size_t layer = 0; layer < num_layers; layer++) { */
+	/* 	for (size_t row = 0; row < num_rows; row++) { */
+	/* 		for (size_t col = 0; col < num_cols; col++) { */
+	/* 			const block_t *block = &blocks[layer][row][col]; */
+	/* 			SDL_SetRenderDrawColor(g_game.ren, 150, 0, 0, 128); */
+	/* 			SDL_RenderFillRectF(g_game.ren, &block->hitbox); */
+	/* 		} */
+	/* 	} */
+	/* } */
 
 	return 0;
 }
@@ -209,6 +254,8 @@ int game_run() {
 	}
 
 	while (is_running) {
+		int left_click = 0;
+		int right_click = 0;
 		while (SDL_PollEvent(&event)) {
 			if (	event.type == SDL_QUIT ||
 				(event.type == SDL_KEYDOWN &&
@@ -216,6 +263,20 @@ int game_run() {
 			) {
 				is_running = 0;
 			}
+
+			if (event.type == SDL_MOUSEBUTTONDOWN) {
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					left_click = 1;
+				} else if (event.button.button == SDL_BUTTON_RIGHT) {
+					right_click = 1;
+				}
+			}
+
+			/* if (	event.type == SDL_MOUSEBUTTONDOWN && */
+			/* 	event.button.button == SDL_BUTTON_LEFT */
+			/* ) { */
+			/* 	left_click = 1; */
+			/* } */
 		}
 		if (SDL_SetRenderDrawColor(g_game.ren, 30, 70, 70, 255)) {
 			SET_ERR("Failed to set render draw color.");
@@ -226,7 +287,21 @@ int game_run() {
 			return 1;
 		}
 
-		render_ground();
+		SDL_Point mouse_pos = {0};
+		SDL_GetMouseState(
+			&mouse_pos.x,
+			&mouse_pos.y
+		);
+
+		SDL_FPoint mouse_posf = {
+			(float)mouse_pos.x,
+			(float)mouse_pos.y
+		};
+
+		if (ground_update(g_game.ground, mouse_posf, left_click, right_click))
+			return 1;
+
+		if (render_ground()) return 1;
 
 		SDL_RenderPresent(g_game.ren);
 	}
