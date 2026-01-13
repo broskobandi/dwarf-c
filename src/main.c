@@ -10,6 +10,9 @@ int main(void) {
 		.win_w = WIN_W,
 		.win_h = WIN_H,
 		.has_vsync = 1,
+		.background_r = 30,
+		.background_g = 75,
+		.background_b = 75,
 		.ground = {
 			2,
 			4,

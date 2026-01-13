@@ -31,6 +31,7 @@ SOFTWARE.
 #define GAME_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 // Helper macros
 
@@ -64,6 +65,9 @@ typedef struct game_init_data {
 	int win_w;
 	int win_h;
 	int has_vsync;
+	uint8_t background_r;
+	uint8_t background_g;
+	uint8_t background_b;
 	struct {
 		size_t num_layers;
 		size_t num_rows;
