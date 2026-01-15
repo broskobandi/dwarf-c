@@ -1,5 +1,6 @@
 #include "error.h"
 #include <string.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <SDL2/SDL_error.h>
 
@@ -7,27 +8,27 @@
 
 _Thread_local char g_err[ERR_BUFF_SIZE];
 
-/** Populates the thread-local global error buffer. */
 void set_err(const char *msg, const char *file, const char *func, int line) {
+
 	const char *header = "[ERR]: ";
 
-	if (	strlen(msg) +
-		strlen(header) +
+	size_t err_length =
+		strlen(msg) +
 		strlen(file) +
 		strlen(func) +
-		10 + 
-		strlen(SDL_GetError()) > ERR_BUFF_SIZE
-	) {
+		10 +
+		strlen(SDL_GetError());
+
+	if (err_length >= ERR_BUFF_SIZE) {
 		msg = "ERR_BUFF_SIZE overflow.";
 	}
 
-	sprintf(g_err, "%s\t%s\n\tFile: %s\n\tFunc: %s\n\tLine: %d\n\t%s",
+	sprintf(g_err, "%s%s\n\tFile: %s\n\tFunc: %s\n\tLine: %d\n\t%s",
 		header, msg, file, func, line, SDL_GetError()
 	);
+
 }
 
-/** Prints the current content of the thread-local global error
- * buffer. */
-void print_err() {
-	fprintf(stderr, "%s\n", g_err);
+const char *get_err() {
+	return g_err;
 }

@@ -1,52 +1,144 @@
 #define SDL_MAIN_HANDLED
 #include "game.h"
-#include "debug.h"
 #include "error.h"
-#include "game_types.h"
-#include "game_init.h"
-#include "game_quit.h"
-#include "game_run.h"
+#include "debug.h"
+#include <SDL2/SDL.h>
 
-game_t g_game;
+typedef struct game {
+	game_init_data_t init_data;
+	SDL_Window *win;
+	SDL_Renderer *ren;
+	int is_sdl_init;
+} game_t;
 
-void game_print_error() {
-	print_err();
-}
+_Thread_local static game_t g_game;
 
-int game_init(game_init_data_t init_data) {
+static inline int set_draw_color(SDL_Color col);
 
-	if (game_init_sdl(&g_game))
-		return 1;
-
-	if (game_init_win(&g_game, init_data.title, init_data.win_w, init_data.win_h))
-		return 1;
-
-	if (game_init_ren(&g_game, init_data.has_vsync))
-		return 1;
-
-	if (game_init_variables(&g_game,
-		init_data.background_r,
-		init_data.background_g,
-		init_data.background_b)
-	) {
+int game_init(game_init_data_t game_init_data) {
+	if (g_game.is_sdl_init) {
+		SET_ERR("Cannot initialize game twice.");
 		return 1;
 	}
 
+	if (SDL_Init(SDL_INIT_EVERYTHING)) {
+		SET_ERR("Failed to initialize SDL.");
+		return 1;
+	}
+	g_game.is_sdl_init = 1;
+	DBG("SDL initialized.");
+
+	g_game.win = SDL_CreateWindow(
+		game_init_data.title,
+		SDL_WINDOWPOS_CENTERED,
+		SDL_WINDOWPOS_CENTERED,
+		game_init_data.win_w,
+		game_init_data.win_h,
+		SDL_WINDOW_SHOWN
+	);
+	if (!g_game.win) {
+		SET_ERR("Failed to create window.");
+		game_quit();
+		return 1;
+	}
+	DBG("Window created.");
+
+	g_game.ren = SDL_CreateRenderer(
+		g_game.win,
+		-1,
+		game_init_data.has_vsync ? SDL_RENDERER_PRESENTVSYNC : 0
+	);
+	if (!g_game.ren) {
+		SET_ERR("Failed to create renderer.");
+		game_quit();
+		return 1;
+	}
+	DBG("Renderer created.");
+
+	if (SDL_SetRenderDrawBlendMode(g_game.ren, SDL_BLENDMODE_BLEND)) {
+		SET_ERR("Failed to set render draw blend mode.");
+		game_quit();
+		return 1;
+	}
+
+	g_game.init_data = game_init_data;
 	return 0;
 }
 
 int game_run() {
-	while (g_game.is_running) {
-		if (game_poll_events(&g_game)) return 1;
-		if (game_clear(&g_game)) return 1;
-		if (game_present(&g_game)) return 1;
+	if (!g_game.is_sdl_init) {
+		SET_ERR("Game must be initialized first.");
+		return 1;
+	}
+
+	SDL_Event event;
+	int is_running = 1;
+	const SDL_Color bg = {
+		.r = g_game.init_data.bg_r,
+		.g = g_game.init_data.bg_g,
+		.b = g_game.init_data.bg_b,
+		255
+	};
+
+	DBG("Running main loop...");
+
+	while (is_running) {
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_QUIT ||
+			   (event.type == SDL_KEYDOWN &&
+			    event.key.keysym.sym == SDLK_q)
+			) {
+				is_running = 0;
+			}
+		}
+
+		if (set_draw_color(bg)) {
+			return 1;
+		}
+
+		if (SDL_RenderClear(g_game.ren)) {
+			SET_ERR("Failed to clear renderer.");
+			return 1;
+		}
+
+		SDL_RenderPresent(g_game.ren);
+
+	}
+
+	DBG("Main loop finished.");
+
+	return 0;
+}
+
+static inline int set_draw_color(SDL_Color col) {
+	if (!g_game.is_sdl_init) {
+		SET_ERR("Game must be initialized first.");
+		return 1;
+	}
+
+	if (SDL_SetRenderDrawColor(g_game.ren, col.r, col.g, col.b, col.a)) {
+		SET_ERR("Failed to set render draw color.");
+		return 1;
 	}
 
 	return 0;
 }
 
+const char *game_get_error() {
+	return get_err();
+}
+
 void game_quit() {
-	game_destroy_ren(&g_game);
-	game_destroy_win(&g_game);
-	game_terminate_sdl(&g_game);
+	if (g_game.ren) {
+		SDL_DestroyRenderer(g_game.ren);
+		DBG("Renderer destroyed.");
+	}
+	if (g_game.win) {
+		SDL_DestroyWindow(g_game.win);
+		DBG("Window destroyed.");
+	}
+	if (g_game.is_sdl_init) {
+		SDL_Quit();
+		DBG("SDL terminated.");
+	}
 }
