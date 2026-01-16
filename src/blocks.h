@@ -13,7 +13,6 @@ typedef struct block {
 	int has_right_light;
 	int has_top_shadow;
 	int is_highlighted;
-	int is_selected;
 	int is_active;
 	int is_visible;
 } block_t;

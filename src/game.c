@@ -137,12 +137,22 @@ int game_run() {
 	DBG("Running main loop...");
 
 	while (is_running) {
+		int is_left_click = 0;
+		int is_right_click = 0;
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT ||
 			   (event.type == SDL_KEYDOWN &&
 			    event.key.keysym.sym == SDLK_q)
 			) {
 				is_running = 0;
+			}
+			if (event.type == SDL_MOUSEBUTTONDOWN) {
+				if (event.button.button == SDL_BUTTON_LEFT) {
+					is_left_click = 1;
+				}
+				if (event.button.button == SDL_BUTTON_RIGHT) {
+					is_right_click = 1;
+				}
 			}
 		}
 
@@ -152,6 +162,18 @@ int game_run() {
 
 		if (SDL_RenderClear(g_game.ren)) {
 			SET_ERR("Failed to clear renderer.");
+			return 1;
+		}
+
+		SDL_Point mouse = {0};
+		SDL_GetMouseState(&mouse.x, &mouse.y);
+
+		if (ground_update(
+			g_game.ground,
+			mouse,
+			is_left_click,
+			is_right_click)
+		) {
 			return 1;
 		}
 
@@ -303,6 +325,12 @@ static inline int render_content() {
 	const size_t num_layers = blocks->init_data.num_layers;
 	const size_t num_rows = blocks->init_data.num_rows;
 	const size_t num_cols = blocks->init_data.num_cols;
+	const size_t right_shadow_index = blocks->init_data.right_shadow_index;
+	const size_t left_shadow_index = blocks->init_data.left_shadow_index;
+	const size_t right_light_index = blocks->init_data.right_light_index;
+	const size_t top_shadow_index = blocks->init_data.top_shadow_index;
+	const size_t highlighted_index = blocks->init_data.highlighted_index;
+	const size_t selected_index = blocks->init_data.selected_index;
 
 	for (size_t layer = 0; layer < num_layers; layer++) {
 		for (size_t row = 0; row < num_rows; row++) {
@@ -319,7 +347,78 @@ static inline int render_content() {
 				) {
 					return 1;
 				}
+
+				if (block->has_right_shadow) {
+					if (!render_texture(
+						tex,
+						&block->dstrect,
+						&block->srcrect,
+						right_shadow_index)
+					) {
+						return 1;
+					}
+				}
+
+				if (block->has_left_shadow) {
+					if (!render_texture(
+						tex,
+						&block->dstrect,
+						&block->srcrect,
+						left_shadow_index)
+					) {
+						return 1;
+					}
+				}
+
+				if (block->has_right_light) {
+					if (!render_texture(
+						tex,
+						&block->dstrect,
+						&block->srcrect,
+						right_light_index)
+					) {
+						return 1;
+					}
+				}
+
+				if (block->has_top_shadow) {
+					if (!render_texture(
+						tex,
+						&block->dstrect,
+						&block->srcrect,
+						top_shadow_index)
+					) {
+						return 1;
+					}
+				}
+
+				if (block->is_highlighted) {
+					if (!render_texture(
+						tex,
+						&block->dstrect,
+						&block->srcrect,
+						highlighted_index)
+					) {
+						return 1;
+					}
+				}
 			}
+		}
+	}
+
+	const block_t *selected_block = 
+		ground_get_selected_block(
+			g_game.ground
+		);
+
+	if (selected_block) {
+		if (!render_texture(
+			tex,
+			&selected_block->dstrect,
+			&selected_block->srcrect,
+			selected_index)
+		) {
+			return 1;
 		}
 	}
 
