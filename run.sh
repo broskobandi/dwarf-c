@@ -78,8 +78,10 @@ if [ "$?" != 0 ]; then
 	exit 1
 fi
 
+cp -r "assets" "build/$OS/$BUILD_TYPE" &&
+ 
 if [ "$OS" = "windows" ];then
-	cp "$SDL_DIR/bin/SDL2.dll" "build/$OS/$BUILD_TYPE"
+	cp "$SDL_DIR/bin/SDL2.dll" "build/$OS/$BUILD_TYPE" &&
 	cp "/usr/x86_64-w64-mingw32/bin/libwinpthread-1.dll" "build/$OS/$BUILD_TYPE"
 	wine "build/$OS/$BUILD_TYPE/game.exe" 
 else

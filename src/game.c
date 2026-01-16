@@ -2,6 +2,8 @@
 #include "game.h"
 #include "error.h"
 #include "debug.h"
+#include "ground.h"
+#include "blocks.h"
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
@@ -18,12 +20,20 @@ typedef struct game {
 	SDL_Window *win;
 	SDL_Renderer *ren;
 	int is_sdl_init;
+	ground_t *ground;
 } game_t;
 
 _Thread_local static game_t g_game;
 
 static inline int set_draw_color(SDL_Color col);
 static inline size_t create_texture(const char *path);
+static inline int render_texture(
+	SDL_Texture *tex,
+	const SDL_FRect *dstrect,
+	const SDL_Rect *srcrect,
+	size_t img_index
+);
+static inline int render_content();
 
 int game_init(
 	game_init_data_t game_init_data,
@@ -94,6 +104,18 @@ int game_init(
 	g_game.cap_tex = CAP_TEX_DEFAULT;
 
 	g_game.init_data = game_init_data;
+
+	size_t ground_tex_id = create_texture(blocks_init_data.path_to_bmp);
+	if (ground_tex_id == -1lu) {
+		game_quit();
+		return 1;
+	}
+	g_game.ground = ground_new(blocks_init_data, ground_tex_id);
+	if (!g_game.ground) {
+		game_quit();
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -133,6 +155,8 @@ int game_run() {
 			return 1;
 		}
 
+		render_content();
+
 		SDL_RenderPresent(g_game.ren);
 
 	}
@@ -166,12 +190,14 @@ static inline size_t create_texture(const char *path) {
 		SET_ERR("Invalid argument.");
 	}
 
+
 	for (size_t i = 0; i < g_game.num_tex; i++) {
 		if (!strcmp(g_game.loaded_tex_paths[i], path)) {
 			DBG("Texture has already been loaded.");
 			return i;
 		}
 	}
+
 
 	if (g_game.num_tex + 1 > g_game.cap_tex) {
 		size_t new_cap =
@@ -197,21 +223,23 @@ static inline size_t create_texture(const char *path) {
 		g_game.cap_tex = new_cap;
 	}
 
+
 	SDL_Surface *sur = SDL_LoadBMP(path);
 	if (!sur) {
 		SET_ERR("Failed to create surface.");
-		return 1;
+		return (size_t)-1;
 	}
 	DBG("Surface created.");
+
 
 	SDL_Texture *tex = SDL_CreateTextureFromSurface(g_game.ren, sur);
 	if (!tex) {
 		SET_ERR("Failed to create texture.");
 		SDL_FreeSurface(sur);
 		DBG("Surface freed.");
-		return 1;
+		return (size_t)-1;
 	}
-	DBG("Surface created.");
+	DBG("Texture created.");
 
 	SDL_FreeSurface(sur);
 	DBG("Surface freed.");
@@ -224,11 +252,86 @@ static inline size_t create_texture(const char *path) {
 	return g_game.num_tex - 1;
 }
 
+static inline int render_texture(
+	SDL_Texture *tex,
+	const SDL_FRect *dstrect,
+	const SDL_Rect *srcrect,
+	size_t img_index
+) {
+	if (!g_game.is_sdl_init) {
+		SET_ERR("Game must be initialized first.");
+		return 1;
+	}
+
+	if (!tex) {
+		SET_ERR("Invalid argument.");
+		return 1;
+	}
+
+	SDL_Rect src = *srcrect;
+	src.x = src.w * (int)img_index;
+
+	if (!SDL_RenderCopyF(
+		g_game.ren,
+		tex,
+		&src,
+		dstrect)
+	) {
+		SET_ERR("Failed to render texture.");
+		return 1;
+	}
+
+	return 0;
+}
+
+static inline int render_content() {
+	if (!g_game.is_sdl_init) {
+		SET_ERR("Game must be initialized first.");
+		return 1;
+	}
+
+	const blocks_t *blocks = ground_get_blocks(g_game.ground);
+
+	if (blocks->tex_id >= g_game.num_tex) {
+		SET_ERR("blocks tex_id is out of bounds.");
+		return 1;
+	}
+	SDL_Texture *tex = g_game.textures[blocks->tex_id];
+
+	const size_t num_layers = blocks->init_data.num_layers;
+	const size_t num_rows = blocks->init_data.num_rows;
+	const size_t num_cols = blocks->init_data.num_cols;
+
+	for (size_t layer = 0; layer < num_layers; layer++) {
+		for (size_t row = 0; row < num_rows; row++) {
+			for (size_t col = 0; col < num_cols; col++) {
+				const block_t *block =
+					&blocks->blocks[layer][row][col];
+				if (!block->is_active) continue;
+
+				if (render_texture(
+					tex,
+					&block->dstrect,
+					&block->srcrect,
+					0)
+				) {
+					return 1;
+				}
+			}
+		}
+	}
+
+	return 0;
+}
+
 const char *game_get_error() {
 	return get_err();
 }
 
 void game_quit() {
+	if (g_game.ground) {
+		ground_del(g_game.ground);
+	}
 	if (g_game.loaded_tex_paths) {
 		free(g_game.loaded_tex_paths);
 		DBG("loaded_tex_paths buffer freed.");

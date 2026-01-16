@@ -2,8 +2,20 @@
 #define BLOCKS_H
 
 #include "game.h"
+#include <SDL2/SDL_rect.h>
 
 typedef struct block {
+	SDL_FRect dstrect;
+	SDL_FRect hitbox;
+	SDL_Rect srcrect;
+	int has_left_shadow;
+	int has_right_shadow;
+	int has_right_light;
+	int has_top_shadow;
+	int is_highlighted;
+	int is_selected;
+	int is_active;
+	int is_visible;
 } block_t;
 
 typedef struct blocks {

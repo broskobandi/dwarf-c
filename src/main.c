@@ -17,7 +17,7 @@ int main(void) {
 	};
 
 	blocks_init_data_t blocks = {
-		.path_to_bmp = "../assets/ground4.bmp",
+		.path_to_bmp = "assets/ground4.bmp",
 		.block_size = BLOCK_SIZE,
 		.hitbox_size = BLOCK_SIZE / 2 - 1,
 		.img_size = 32,
