@@ -155,7 +155,9 @@ int game_run() {
 			return 1;
 		}
 
-		render_content();
+		if (render_content()) {
+			return 1;
+		}
 
 		SDL_RenderPresent(g_game.ren);
 
@@ -309,7 +311,7 @@ static inline int render_content() {
 					&blocks->blocks[layer][row][col];
 				if (!block->is_active) continue;
 
-				if (render_texture(
+				if (!render_texture(
 					tex,
 					&block->dstrect,
 					&block->srcrect,

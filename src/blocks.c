@@ -41,6 +41,7 @@ int blocks_init(
 			return 1;
 		}
 		DBG("Rows of blocks allocated.");
+
 		for (size_t row = 0; row < num_rows; row++) {
 			blocks->blocks[layer][row] =
 				calloc(num_cols, sizeof(blocks_t));
@@ -50,16 +51,17 @@ int blocks_init(
 				return 1;
 			}
 			DBG("Cols of blocks allocated.");
+
 			for (size_t col = 0; col < num_cols; col++) {
 				block_t block = {0};
 
 				block.dstrect.x =
 					origin_x + (float)col * x_offset -
-					(float)row * y_offset;
+					(float)row * x_offset;
 				block.dstrect.y =
 					origin_y + origin_z +
 				       	(float)row * y_offset +
-					(float)col * z_offset -
+					(float)col * y_offset -
 					(float)layer * z_offset;
 				block.dstrect.w = block_size;
 				block.dstrect.h = block_size;
